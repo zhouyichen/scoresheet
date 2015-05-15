@@ -61,18 +61,25 @@ function to_array(workbook) {
             result[sheetName] = array;
         }
     });
-    console.log(result);
     return result;
 }
 
 function generateFirstRounds(fileArray, groupByPlayer) {
     var regList = fileArray.Registration;
-    var events = _.omit(fileArray, 'Registration');
+    var events = _.filter(regList[2], function (entry) {
+        return _.contains(_.keys(eventNames), entry);
+    });
     var competitiors = getCompetitors(regList);
-    var numberOfAttempts = getNumberOfAttempts(events);
-    if (groupByPlayer == true){
+    var numberOfAttempts = getNumberOfAttempts(_.omit(fileArray, 'Registration'));
+    var groupByPlayer = true;
+    if (groupByPlayer == true) {
+        var generator = generateByPlayer(regList, events, numberOfAttempts);
+        console.log(generator);
+    }
+    else {
 
     }
+
 
 }
 
@@ -100,13 +107,40 @@ function getNumberOfAttempts(events) {
         else {
             attemps = 1;
         }
-        numberOfAttempts[key.slice(0, -2)] = attemps;
+        if (!numberOfAttempts[key.slice(0, -2)]) {
+            numberOfAttempts[key.slice(0, -2)] = attemps;
+        }
     });
     console.log(numberOfAttempts);
     return numberOfAttempts;
 }
 
+function generateByPlayer(regList, events, numberOfAttempts) {
+    var generator = {five: [], three: [], two: [], one: []};
+    _.each(_.rest(regList, 3), function (row) {
+        for (var e in events) {
+            if (row[Number(e) + 7] == '1') {
+                var playerEvent = {player: row[1], index: row[0], event: events[e], round: 1};
+                switch(numberOfAttempts[events[e]]) {
+                    case 5:
+                        (generator.five).push(playerEvent);
+                        break;
+                    case 3:
+                        (generator.three).push(playerEvent);
+                        break;
+                    case 2:
+                        (generator.two).push(playerEvent);
+                        break;
+                    case 1:
+                        (generator.one).push(playerEvent);
+                        break;
+                }
+            }
+        }
+    });
+    return generator;
 
+}
 
 
 
