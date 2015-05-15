@@ -2,27 +2,41 @@ var xlf = document.getElementById('xlf');
 
 var eventNames = {
     '222' : '2×2 Cube',
-    '333' : '3×3 Cube',
+    '333' : "Rubik's Cube",
     '444' : '4×4 Cube',
     '555' : '5×5 Cube',
     '666' : '6×6 Cube',
     '777' : '7×7 Cube',
-    '333bf' : '3×3 BF',
-    '444bf' : '4×4 BF',
-    '555bf' : '5×5 BF',
-    '333oh' : '3×3 OH',
-    '333ft' : '3×3 Feet',
+    '333bf' : '3×3 Blindfolded',
+    '444bf' : '4×4 Blindfolded',
+    '555bf' : '5×5 Blindfolded',
+    '333oh' : '3×3 One-Handed',
+    '333ft' : '3×3 With Feet',
     'minx' : 'Megaminx',
     'pyram' : 'Pyraminx',
     'sq1' : 'Square-1',
     'clock' : 'Clock',
     'skewb' : 'Skewb',
 
-    '333mbf' : "3×3 Multi-BF", // special scoresheet for this
+    '333mbf' : '3×3 Multi-BF', // special scoresheet for this
 
     '333fm' : 'Fewest Moves' // no need to generate score sheet for this
 }
 
+var A4PtSize = {
+    height : 842,
+    width : 595
+}
+
+
+
+/**
+ * Each playerEvent represents the info on one scoresheet
+ * @param {string} player name
+ * @param {string} index  
+ * @param {string} event  for 333mbf, this will be the number of attempts
+ * @param {int} round  the round number
+ */
 var PlayerEvent = function (player, index, event, round) {
     this.player = player;
     this.index = index;
@@ -30,6 +44,10 @@ var PlayerEvent = function (player, index, event, round) {
     this.round = round;
 }
 
+/**
+ * The Generator object is to be passed into the generate pdf function.
+ * It stores the playerEvent objects according to the number of attempts
+ */
 var Generator = function () {
     this.five = [];
     this.three = [];
@@ -52,7 +70,6 @@ function process(file) {
         var data = e.target.result;
         var arr = fixdata(data);
         var wb = XLSX.read(btoa(arr), {type: 'base64'});
-        console.log(wb);
         var array = to_array(wb);
         generateFirstRounds(array, true);
     };
@@ -60,7 +77,7 @@ function process(file) {
 }
 
 function fixdata(data) {
-    var o = "", l = 0, w = 10240;
+    var o = '', l = 0, w = 10240;
     for(; l<data.byteLength/w; ++l) o+=String.fromCharCode.apply(null,new Uint8Array(data.slice(l*w,l*w+w)));
     o+=String.fromCharCode.apply(null, new Uint8Array(data.slice(l*w)));
     return o;
@@ -71,7 +88,6 @@ function to_array(workbook) {
     workbook.SheetNames.forEach(function(sheetName) {
         var csv = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
         array = csv.csvToArray({rSep:'\n'});
-        console.log(csv);
         if(csv.length > 0){
             result[sheetName] = array;
         }
@@ -121,8 +137,9 @@ function getNumberOfAttempts(events) {
         else {
             attemps = 1;
         }
-        if (!numberOfAttempts[key.slice(0, -2)]) {
-            numberOfAttempts[key.slice(0, -2)] = attemps;
+        var e = key.slice(0, -2);
+        if (!numberOfAttempts[e]) {
+            numberOfAttempts[e] = attemps;
         }
     });
     console.log(numberOfAttempts);
@@ -138,7 +155,7 @@ function generateByPlayer(regList, events, numberOfAttempts) {
             }
             if (row[Number(e) + 7] == '1') {
                 // create a new player event
-                var playerEvent = new PlayerEvent(row[1], row[0], events[e], 1);
+                var playerEvent = new PlayerEvent(row[1], row[0], eventNames[events[e]], 'Round ' + 1);
                 if (events[e] == '333mbf') {
                     // change the event attribute to number of attempes instead for mbf
                     playerEvent.event = numberOfAttempts[events[e]];
@@ -166,9 +183,130 @@ function generateByPlayer(regList, events, numberOfAttempts) {
     return generator;
 }
 
-function generatePDF(generator) {
+var header = [
+    {key: 'index', width : 20},
+    {key: 'player', width : 350}, 
+    {key: 'event', width : 140},
+    {key: 'round', width : 65} 
+];
 
+var columns = [
+    {title: ' ', key: 'attempt', width : 8},
+    {title: 'Displayed Time', key: 'time', width : 130}, 
+    {title: 'Inspection', key: 'in', width : 45},
+    {title: 'Starting', key: 'start', width : 43}, 
+    {title: 'Stopping', key: 'stop', width : 44},
+    {title: 'Solved State', key: 'ss', width : 55},
+    {title: 'Final Result', key: 'result', width : 130}, 
+    {title: 'Judge Sign', key: 'js', width : 60}, 
+    {title: 'Player Sign', key: 'ps', width : 60}
+];
+
+function generatePDF(generator) {
+    var fiveAttempts = generator.five;
+    var data = [];
+    for (var a = 1; a <= 5; a++) {
+        data.push({'attempt' : a});
+    }
+
+    var doc = new jsPDF('p', 'pt');
+    var counter = 0;
+    for (var scoresheet in fiveAttempts) {
+        y = counter * A4PtSize.height / 4;
+        doc.line(0, y, A4PtSize.width, y);
+        doc.autoTable(header, [fiveAttempts[scoresheet]], headerOptions(doc, y));
+        doc.autoTable(columns, data, fiveAttemptsOptions(doc, y));
+        counter++;
+        if (counter == 4) {
+            counter = 0;
+            doc.addPage();
+        }
+    }
+    doc.save('table.pdf');
 }
+
+function headerOptions(doc, yStart) {
+    padding = 0;
+    var leftAndRight = 10;
+    var topAndBottom = 10;
+    return {
+        lineHeight : 25,
+        margins : {
+            left : leftAndRight,
+            right : leftAndRight,
+        },
+        startY : yStart - 15,
+        renderHeaderCell: function (x, y, width, height, key, value, settings) {
+            // do nothing
+        },
+        renderCell: function (x, y, width, height, key, value, row, settings) {
+            doc.setFontSize(10);
+            doc.setFillColor(255);
+            doc.rect(x, y, width, height, 'S');
+            doc.setFontStyle('bold');
+            doc.setFontSize(14);
+            x += 2;
+            y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
+            doc.text('' + value, x + settings.padding, y);
+        }
+
+    };
+}
+
+function fiveAttemptsOptions(doc, yStart) {
+    padding = 0;
+    var leftAndRight = 10;
+    var topAndBottom = 10;
+    var attemptHeight = 30;
+    return {
+        margins : {
+            left : leftAndRight,
+            right : leftAndRight,
+        },
+        startY: yStart + 40,
+        lineHeight : 25,
+        renderHeaderCell: function (x, y, width, height, key, value, settings) {
+            doc.setFillColor(255);
+            doc.setTextColor(0);
+
+            doc.rect(x, y, width, height, 'S');
+            switch (key) {
+                case 'start':
+                    x += 2
+                case 'stop':
+                    x += 2
+                case 'in':
+                case 'ss':
+                    doc.setFontSize(8);
+                    x += 5;
+                    break;
+                case 'result':
+                    x += 12;
+                case 'time':
+                    x += 18;
+                    doc.setFontSize(11);
+                    break;
+                case 'js':
+                case 'ps':
+                    doc.setFontSize(8.5);
+                    x += 7;
+                    break;
+            }
+            y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 1;
+            doc.text('' + value, x, y);
+            doc.setFontSize(8);
+        },
+        renderCell: function (x, y, width, height, key, value, row, settings) {
+            doc.setFontSize(9);
+            doc.setFillColor(row % 2 === 0 ? 245 : 255);
+            doc.rect(x, y, width, height, 'B');
+            y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
+            doc.text('' + value, x + settings.padding, y);
+        }
+
+    };
+}
+
 
 
 
