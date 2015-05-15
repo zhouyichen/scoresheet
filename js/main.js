@@ -23,6 +23,21 @@ var eventNames = {
     '333fm' : 'Fewest Moves' // no need to generate score sheet for this
 }
 
+var PlayerEvent = function (player, index, event, round) {
+    this.player = player;
+    this.index = index;
+    this.event = event;
+    this.round = round;
+}
+
+var Generator = function () {
+    this.five = [];
+    this.three = [];
+    this.two = [];
+    this.one = [];
+    this.mbf = [];
+}
+
 function handleFile(e) {
     var files = e.target.files;
     var file = files[0];
@@ -74,13 +89,12 @@ function generateFirstRounds(fileArray, groupByPlayer) {
     var groupByPlayer = true;
     if (groupByPlayer == true) {
         var generator = generateByPlayer(regList, events, numberOfAttempts);
+        generatePDF(generator);
         console.log(generator);
     }
-    else {
+    else { // group by events
 
     }
-
-
 }
 
 function getCompetitors(regList) {
@@ -116,32 +130,45 @@ function getNumberOfAttempts(events) {
 }
 
 function generateByPlayer(regList, events, numberOfAttempts) {
-    var generator = {five: [], three: [], two: [], one: []};
+    var generator = new Generator();
     _.each(_.rest(regList, 3), function (row) {
         for (var e in events) {
+            if (events[e] == '333fm'){
+                continue;
+            }
             if (row[Number(e) + 7] == '1') {
-                var playerEvent = {player: row[1], index: row[0], event: events[e], round: 1};
-                switch(numberOfAttempts[events[e]]) {
-                    case 5:
-                        (generator.five).push(playerEvent);
-                        break;
-                    case 3:
-                        (generator.three).push(playerEvent);
-                        break;
-                    case 2:
-                        (generator.two).push(playerEvent);
-                        break;
-                    case 1:
-                        (generator.one).push(playerEvent);
-                        break;
+                // create a new player event
+                var playerEvent = new PlayerEvent(row[1], row[0], events[e], 1);
+                if (events[e] == '333mbf') {
+                    // change the event attribute to number of attempes instead for mbf
+                    playerEvent.event = numberOfAttempts[events[e]];
+                    generator.mbf.push(playerEvent);
+                }
+                else {
+                    switch(numberOfAttempts[events[e]]) {
+                        case 5:
+                            (generator.five).push(playerEvent);
+                            break;
+                        case 3:
+                            (generator.three).push(playerEvent);
+                            break;
+                        case 2:
+                            (generator.two).push(playerEvent);
+                            break;
+                        case 1:
+                            (generator.one).push(playerEvent);
+                            break;
+                    }
                 }
             }
         }
     });
     return generator;
-
 }
 
+function generatePDF(generator) {
+
+}
 
 
 
