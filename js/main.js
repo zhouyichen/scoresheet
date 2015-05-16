@@ -26,8 +26,14 @@ var eventNames = {
 var A4PtSize = {
     height : 842,
     width : 595
-}
+};
 
+var canva = document.getElementById("myCanvas");
+var ctx;
+var scale = 10;
+
+ctx = canva.getContext("2d"); 
+ctx.font = "bold " + 35 * scale +"px Helvetica";
 
 
 /**
@@ -184,8 +190,8 @@ function generateByPlayer(regList, events, numberOfAttempts) {
 }
 
 var header = [
-    {key: 'index', width : 20},
-    {key: 'player', width : 350}, 
+    {key: 'index', width : 30},
+    {key: 'player', width : 340}, 
     {key: 'event', width : 140},
     {key: 'round', width : 65} 
 ];
@@ -209,6 +215,14 @@ function generatePDF(generator) {
         data.push({'attempt' : a});
     }
 
+    // var dd = {
+    //     content: [
+    //         'First 中文 paragraph',
+    //         'Another paragraph, this time a little bit longer to make sure, this line will be divided into at least two lines'
+    //     ]
+    // };
+    // pdfMake.createPdf(dd).open();
+    // 
     var doc = new jsPDF('p', 'pt');
     var counter = 0;
     for (var scoresheet in fiveAttempts) {
@@ -223,12 +237,26 @@ function generatePDF(generator) {
         }
     }
     doc.save('table.pdf');
+
 }
+
+var not = true;
 
 function headerOptions(doc, yStart) {
     padding = 0;
     var leftAndRight = 10;
     var topAndBottom = 10;
+    function callback (a, b, c, d) {
+        console.log(a, b, c, d);
+    }
+    function containsSpecial(string){
+        var allowed = 'abcdefghijklmnopqrstuvwxyz' +
+                      'ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
+                      "1234567890 ×-'";
+        return _.some(string, function(char) {
+            return !_.contains(allowed, char);
+        });
+    }
     return {
         lineHeight : 25,
         margins : {
@@ -241,13 +269,31 @@ function headerOptions(doc, yStart) {
         },
         renderCell: function (x, y, width, height, key, value, row, settings) {
             doc.setFontSize(10);
+            doc.setFont("helvetica");
             doc.setFillColor(255);
             doc.rect(x, y, width, height, 'S');
             doc.setFontStyle('bold');
             doc.setFontSize(14);
             x += 2;
             y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
-            doc.text('' + value, x + settings.padding, y);
+            var specialElementHandlers = {
+                '#editor': function(element, renderer){
+                    return true;
+                }
+            };
+
+            if (key == 'player' && containsSpecial(value)){
+                ctx.scale(1/scale, 1/scale);
+                ctx.fillText(value, 5 * scale, 40 * scale);
+                ctx.scale(scale, scale);
+                var imgData = canva.toDataURL('image/png');
+                ctx.clearRect (0 , 0 , canva.width, canva.height);
+                doc.addImage(imgData, 'PNG', x + settings.padding - 1, y - 16, 4 * canva.width/scale, 4 * canva.height/scale);
+            }
+            else {
+                doc.text('' + value, x + settings.padding, y);
+            }
+            // doc.addHTML('' + value, x + settings.padding, y, {}, callback);
         }
 
     };
