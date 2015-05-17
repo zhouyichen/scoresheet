@@ -191,9 +191,9 @@ function generateByPlayer(regList, events, numberOfAttempts) {
 
 var header = [
     {key: 'index', width : 30},
-    {key: 'player', width : 340}, 
-    {key: 'event', width : 140},
-    {key: 'round', width : 65} 
+    {key: 'player', width : 360}, 
+    {key: 'event', width : 123},
+    {key: 'round', width : 62} 
 ];
 
 var columns = [
@@ -208,47 +208,74 @@ var columns = [
     {title: 'Player Sign', key: 'ps', width : 60}
 ];
 
+var AttemptsSettings = function (number, sheetPerPage) {
+    this.number = number,
+    this.sheetPerPage = sheetPerPage,
+    this.headerPlus = (A4PtSize.height / sheetPerPage - (25 * (number + 2)) - 5) / 2 - 30;
+    this.attempsPlus = this.headerPlus + 55;
+}
+
+var fiveAttemptsSettings = new AttemptsSettings(5, 4);
+var threeAttemptsSettings = new AttemptsSettings(3, 5);
+var twoAttemptsSettings = new AttemptsSettings(2, 6);
+var oneAttemptSettings = new AttemptsSettings(1, 8);
+
 function generatePDF(generator) {
-    var fiveAttempts = generator.five;
+    var doc = new jsPDF('p', 'pt');
+
+    var firstPage = true;
+    if (generator.five.length > 0){
+        firstPage = false;
+        generateByAttempts(generator.five, doc, fiveAttemptsSettings);
+    }
+    if (generator.three.length > 0){
+        if (!firstPage) { doc.addPage();}
+        else {firstPage = false;}
+        generateByAttempts(generator.three, doc, threeAttemptsSettings);
+    }
+    if (generator.two.length > 0){
+        if (!firstPage) { doc.addPage();}
+        else {firstPage = false;}
+        generateByAttempts(generator.two, doc, twoAttemptsSettings);
+    }
+    if (generator.one.length > 0){
+        if (!firstPage) { doc.addPage();}
+        else {firstPage = false;}
+        generateByAttempts(generator.one, doc, oneAttemptSettings);
+    }
+    doc.save('table.pdf');
+}
+
+function generateByAttempts(generator, doc, settings) {
     var data = [];
-    for (var a = 1; a <= 5; a++) {
+    for (var a = 1; a <= settings.number; a++) {
         data.push({'attempt' : a});
     }
-
-    // var dd = {
-    //     content: [
-    //         'First 中文 paragraph',
-    //         'Another paragraph, this time a little bit longer to make sure, this line will be divided into at least two lines'
-    //     ]
-    // };
-    // pdfMake.createPdf(dd).open();
-    // 
-    var doc = new jsPDF('p', 'pt');
     var counter = 0;
-    for (var scoresheet in fiveAttempts) {
-        y = counter * A4PtSize.height / 4;
-        doc.line(0, y, A4PtSize.width, y);
-        doc.autoTable(header, [fiveAttempts[scoresheet]], headerOptions(doc, y));
-        doc.autoTable(columns, data, fiveAttemptsOptions(doc, y));
-        counter++;
-        if (counter == 4) {
+    var y;
+    for (var scoresheet in generator) {
+        if (counter == settings.sheetPerPage) {
             counter = 0;
             doc.addPage();
         }
+        y = counter * A4PtSize.height / settings.sheetPerPage;
+        doc.line(0, y, A4PtSize.width, y);
+        doc.autoTable(header, [generator[scoresheet]], headerOptions(doc, y, settings.headerPlus));
+        doc.autoTable(columns, data, attemptsOptions(doc, y, settings.attempsPlus));
+        counter++;
     }
-    doc.save('table.pdf');
-
+    for (var i = counter; i < settings.sheetPerPage; i++) {
+        y = i * A4PtSize.height / settings.sheetPerPage;
+        doc.line(0, y, A4PtSize.width, y);
+        doc.autoTable(header, [{}], headerOptions(doc, y, settings.headerPlus));
+        doc.autoTable(columns, data, attemptsOptions(doc, y, settings.attempsPlus));
+    }
 }
 
-var not = true;
-
-function headerOptions(doc, yStart) {
+function headerOptions(doc, yStart, yPlus) {
     padding = 0;
     var leftAndRight = 10;
     var topAndBottom = 10;
-    function callback (a, b, c, d) {
-        console.log(a, b, c, d);
-    }
     function containsSpecial(string){
         var allowed = 'abcdefghijklmnopqrstuvwxyz' +
                       'ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
@@ -263,7 +290,7 @@ function headerOptions(doc, yStart) {
             left : leftAndRight,
             right : leftAndRight,
         },
-        startY : yStart - 15,
+        startY : yStart + yPlus,
         renderHeaderCell: function (x, y, width, height, key, value, settings) {
             // do nothing
         },
@@ -274,14 +301,13 @@ function headerOptions(doc, yStart) {
             doc.rect(x, y, width, height, 'S');
             doc.setFontStyle('bold');
             doc.setFontSize(14);
-            x += 2;
+            x += 1;
             y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
             var specialElementHandlers = {
                 '#editor': function(element, renderer){
                     return true;
                 }
             };
-
             if (key == 'player' && containsSpecial(value)){
                 ctx.scale(1/scale, 1/scale);
                 ctx.fillText(value, 5 * scale, 40 * scale);
@@ -293,23 +319,20 @@ function headerOptions(doc, yStart) {
             else {
                 doc.text('' + value, x + settings.padding, y);
             }
-            // doc.addHTML('' + value, x + settings.padding, y, {}, callback);
         }
-
     };
 }
 
-function fiveAttemptsOptions(doc, yStart) {
+function attemptsOptions(doc, yStart, yPlus) {
     padding = 0;
     var leftAndRight = 10;
     var topAndBottom = 10;
-    var attemptHeight = 30;
     return {
         margins : {
             left : leftAndRight,
             right : leftAndRight,
         },
-        startY: yStart + 40,
+        startY: yStart + yPlus,
         lineHeight : 25,
         renderHeaderCell: function (x, y, width, height, key, value, settings) {
             doc.setFillColor(255);
@@ -349,7 +372,6 @@ function fiveAttemptsOptions(doc, yStart) {
             y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
             doc.text('' + value, x + settings.padding, y);
         }
-
     };
 }
 
