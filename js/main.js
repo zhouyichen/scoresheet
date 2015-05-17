@@ -20,8 +20,8 @@ var eventNames = {
 
     '333mbf' : '3×3 Multi-BF', // special scoresheet for this
 
-    '333fm' : 'Fewest Moves' // no need to generate score sheet for this
-}
+    '333fm' : 'Fewest Moves' // no need to generate scoresheet for this
+};
 
 var A4PtSize = {
     height : 842,
@@ -37,22 +37,22 @@ ctx.font = "bold " + 35 * scale +"px Helvetica";
 
 
 /**
- * Each playerEvent represents the info on one scoresheet
+ * Each Scoresheet represents the info on one scoresheet
  * @param {string} player name
  * @param {string} index  
  * @param {string} event  for 333mbf, this will be the number of attempts
  * @param {int} round  the round number
  */
-var PlayerEvent = function (player, index, event, round) {
-    this.player = player;
-    this.index = index;
-    this.event = event;
-    this.round = round;
+var Scoresheet = function (player, index, event, round) {
+    this.Name = player;
+    this.ID = index;
+    this.Event = event;
+    this.Round = round;
 }
 
 /**
  * The Generator object is to be passed into the generate pdf function.
- * It stores the playerEvent objects according to the number of attempts
+ * It stores the scoresheet objects according to the number of attempts
  */
 var Generator = function () {
     this.five = [];
@@ -106,13 +106,14 @@ function generateFirstRounds(fileArray, groupByPlayer) {
     var events = _.filter(regList[2], function (entry) {
         return _.contains(_.keys(eventNames), entry);
     });
+    var competitionName = getCompetitionName(regList);
+    competitionName += ' First Rounds';
     var competitiors = getCompetitors(regList);
     var numberOfAttempts = getNumberOfAttempts(_.omit(fileArray, 'Registration'));
     var groupByPlayer = true;
     if (groupByPlayer == true) {
         var generator = generateByPlayer(regList, events, numberOfAttempts);
-        generatePDF(generator);
-        console.log(generator);
+        generatePDF(generator, competitionName);
     }
     else { // group by events
 
@@ -124,6 +125,9 @@ function getCompetitors(regList) {
         return _.first(row, 2);
     });
     return competitors;
+}
+
+function getCompetitionName(regList) { return regList[0][0];
 }
 
 function getNumberOfAttempts(events) {
@@ -161,25 +165,25 @@ function generateByPlayer(regList, events, numberOfAttempts) {
             }
             if (row[Number(e) + 7] == '1') {
                 // create a new player event
-                var playerEvent = new PlayerEvent(row[1], row[0], eventNames[events[e]], 'Round ' + 1);
+                var scoresheet = new Scoresheet(row[1], row[0], eventNames[events[e]], 'Round ' + 1);
                 if (events[e] == '333mbf') {
                     // change the event attribute to number of attempes instead for mbf
-                    playerEvent.event = numberOfAttempts[events[e]];
-                    generator.mbf.push(playerEvent);
+                    scoresheet.event = numberOfAttempts[events[e]];
+                    generator.mbf.push(scoresheet);
                 }
                 else {
                     switch(numberOfAttempts[events[e]]) {
                         case 5:
-                            (generator.five).push(playerEvent);
+                            (generator.five).push(scoresheet);
                             break;
                         case 3:
-                            (generator.three).push(playerEvent);
+                            (generator.three).push(scoresheet);
                             break;
                         case 2:
-                            (generator.two).push(playerEvent);
+                            (generator.two).push(scoresheet);
                             break;
                         case 1:
-                            (generator.one).push(playerEvent);
+                            (generator.one).push(scoresheet);
                             break;
                     }
                 }
@@ -189,24 +193,6 @@ function generateByPlayer(regList, events, numberOfAttempts) {
     return generator;
 }
 
-var header = [
-    {key: 'index', width : 30},
-    {key: 'player', width : 360}, 
-    {key: 'event', width : 123},
-    {key: 'round', width : 62} 
-];
-
-var columns = [
-    {title: ' ', key: 'attempt', width : 8},
-    {title: 'Displayed Time', key: 'time', width : 130}, 
-    {title: 'Inspection', key: 'in', width : 45},
-    {title: 'Starting', key: 'start', width : 43}, 
-    {title: 'Stopping', key: 'stop', width : 44},
-    {title: 'Solved State', key: 'ss', width : 55},
-    {title: 'Final Result', key: 'result', width : 130}, 
-    {title: 'Judge Sign', key: 'js', width : 60}, 
-    {title: 'Player Sign', key: 'ps', width : 60}
-];
 
 var AttemptsSettings = function (number, sheetPerPage) {
     this.number = number,
@@ -220,7 +206,8 @@ var threeAttemptsSettings = new AttemptsSettings(3, 5);
 var twoAttemptsSettings = new AttemptsSettings(2, 6);
 var oneAttemptSettings = new AttemptsSettings(1, 8);
 
-function generatePDF(generator) {
+
+function generatePDF(generator, competitionName) {
     var doc = new jsPDF('p', 'pt');
 
     var firstPage = true;
@@ -243,7 +230,22 @@ function generatePDF(generator) {
         else {firstPage = false;}
         generateByAttempts(generator.one, doc, oneAttemptSettings);
     }
-    doc.save('table.pdf');
+    if (generator.mbf.length > 0){
+        if (!firstPage) { doc.addPage();}
+        else {firstPage = false;}
+        switch ((generator.mbf)[0].event) {
+            case 3:
+                generateMBFByAttempts(generator.mbf, doc, threeAttemptsSettings);
+                break;
+            case 2:
+                generateMBFByAttempts(generator.mbf, doc, twoAttemptsSettings);
+                break;
+            case 1:
+                generateMBFByAttempts(generator.mbf, doc, oneAttemptSettings);
+                break;
+        }  
+    }
+    doc.save(competitionName+' Scoresheets.pdf');
 }
 
 function generateByAttempts(generator, doc, settings) {
@@ -260,17 +262,83 @@ function generateByAttempts(generator, doc, settings) {
         }
         y = counter * A4PtSize.height / settings.sheetPerPage;
         doc.line(0, y, A4PtSize.width, y);
-        doc.autoTable(header, [generator[scoresheet]], headerOptions(doc, y, settings.headerPlus));
-        doc.autoTable(columns, data, attemptsOptions(doc, y, settings.attempsPlus));
+        var sc = generator[scoresheet];
+        doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
+        doc.autoTable(columns, data, attemptsOptions(doc, y, settings.attempsPlus, headerSpacing));
         counter++;
     }
     for (var i = counter; i < settings.sheetPerPage; i++) {
+        var sc = [];
+        sc.Round = 'Round';
         y = i * A4PtSize.height / settings.sheetPerPage;
         doc.line(0, y, A4PtSize.width, y);
-        doc.autoTable(header, [{}], headerOptions(doc, y, settings.headerPlus));
-        doc.autoTable(columns, data, attemptsOptions(doc, y, settings.attempsPlus));
+        doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
+        doc.autoTable(columns, data, attemptsOptions(doc, y, settings.attempsPlus, headerSpacing));
     }
 }
+
+function generateMBFByAttempts(generator, doc, settings) {
+    var data = [];
+    for (var a = 1; a <= settings.number; a++) {
+        data.push({'attempt' : a});
+    }
+    var counter = 0;
+    var y;
+
+    for (var scoresheet in generator) {
+        if (counter == settings.sheetPerPage) {
+            counter = 0;
+            doc.addPage();
+        }
+        y = counter * A4PtSize.height / settings.sheetPerPage;
+        doc.line(0, y, A4PtSize.width, y);
+        var sc = generator[scoresheet];
+        sc.Event = '3×3 Multi-BF';
+        doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
+        doc.autoTable(MBFcolumns, data, attemptsOptions(doc, y, settings.attempsPlus, MBFHeaderSpacing));
+        counter++;
+    }
+    for (var i = counter; i < settings.sheetPerPage; i++) {
+        var sc = [];
+        sc.Event = '3×3 Multi-BF';
+        sc.Round = 'Round';
+        y = i * A4PtSize.height / settings.sheetPerPage;
+        doc.line(0, y, A4PtSize.width, y);
+        doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
+        doc.autoTable(MBFcolumns, data, attemptsOptions(doc, y, settings.attempsPlus, MBFHeaderSpacing));
+    }
+}
+
+var header = [
+    {key: 'ID', width : 28},
+    {key: 'Name', width : 360},
+    {key: 'Event', width : 122},
+    {key: 'Round', width : 65}
+];
+
+var columns = [
+    {title: ' ', key: 'attempt', width : 5},
+    {title: 'Displayed Time', key: 'time', width : 130}, 
+    {title: 'Inspection', key: 'in', width : 45},
+    {title: 'Starting', key: 'start', width : 45}, 
+    {title: 'Stopping', key: 'stop', width : 45},
+    {title: 'Solved State', key: 'ss', width : 55},
+    {title: 'Final Result', key: 'result', width : 130}, 
+    {title: 'Judge Sign', key: 'js', width : 60}, 
+    {title: 'Player Sign', key: 'ps', width : 60}
+];
+
+var MBFcolumns = [
+    {title: ' ', key: 'attempt', width : 5},
+    {title: 'Displayed Time', key: 'time', width : 124},
+    {title: 'Starting', key: 'start', width : 34}, 
+    {title: 'Stopping', key: 'stop', width : 38},
+    {title: 'Solved State', key: 'ss', width : 53},
+    {title: 'Completed/Attempted', key: 'ca', width : 91},
+    {title: 'Final Result', key: 'result', width : 124}, 
+    {title: 'Judge Sign', key: 'js', width : 52},
+    {title: 'Player Sign', key: 'ps', width : 52}
+];
 
 function headerOptions(doc, yStart, yPlus) {
     padding = 0;
@@ -303,12 +371,7 @@ function headerOptions(doc, yStart, yPlus) {
             doc.setFontSize(14);
             x += 1;
             y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
-            var specialElementHandlers = {
-                '#editor': function(element, renderer){
-                    return true;
-                }
-            };
-            if (key == 'player' && containsSpecial(value)){
+            if (key == 'Name' && containsSpecial(value)){
                 ctx.scale(1/scale, 1/scale);
                 ctx.fillText(value, 5 * scale, 40 * scale);
                 ctx.scale(scale, scale);
@@ -317,13 +380,21 @@ function headerOptions(doc, yStart, yPlus) {
                 doc.addImage(imgData, 'PNG', x + settings.padding - 1, y - 16, 4 * canva.width/scale, 4 * canva.height/scale);
             }
             else {
-                doc.text('' + value, x + settings.padding, y);
+                if (value) {
+                    doc.text('' + value, x + settings.padding, y);
+                }
+                else {
+                    doc.setTextColor(223);
+                    doc.text('' + key, x + settings.padding, y);
+                    doc.setTextColor(0);
+                }
+                
             }
         }
     };
 }
 
-function attemptsOptions(doc, yStart, yPlus) {
+function attemptsOptions(doc, yStart, yPlus, headerSpacing) {
     padding = 0;
     var leftAndRight = 10;
     var topAndBottom = 10;
@@ -337,44 +408,73 @@ function attemptsOptions(doc, yStart, yPlus) {
         renderHeaderCell: function (x, y, width, height, key, value, settings) {
             doc.setFillColor(255);
             doc.setTextColor(0);
-
             doc.rect(x, y, width, height, 'S');
-            switch (key) {
-                case 'start':
-                    x += 2
-                case 'stop':
-                    x += 2
-                case 'in':
-                case 'ss':
-                    doc.setFontSize(8);
-                    x += 5;
-                    break;
-                case 'result':
-                    x += 12;
-                case 'time':
-                    x += 18;
-                    doc.setFontSize(11);
-                    break;
-                case 'js':
-                case 'ps':
-                    doc.setFontSize(8.5);
-                    x += 7;
-                    break;
-            }
+            x = headerSpacing(x, key, doc);
             y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 1;
             doc.text('' + value, x, y);
-            doc.setFontSize(8);
+            doc.setFontSize(7);
         },
         renderCell: function (x, y, width, height, key, value, row, settings) {
             doc.setFontSize(9);
             doc.setFillColor(row % 2 === 0 ? 245 : 255);
             doc.rect(x, y, width, height, 'B');
             y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
-            doc.text('' + value, x + settings.padding, y);
+            if (key == 'ca'){
+                doc.text('/', x + 43, y);
+            } else {
+                doc.text('' + value, x + settings.padding, y);
+            }
         }
     };
 }
 
+function headerSpacing(x, key, doc) {
+    switch (key) {
+        case 'start':
+            x += 3;
+        case 'stop':
+            x += 2;
+        case 'in':
+        case 'ss':
+            doc.setFontSize(8);
+            x += 5;
+            break;
+        case 'result':
+            x += 9;
+        case 'time':
+            x += 22;
+            doc.setFontSize(11);
+            break;
+        case 'js':
+        case 'ps':
+            doc.setFontSize(8.5);
+            x += 8;
+            break;
+    }
+    return x;
+}
 
-
-
+function MBFHeaderSpacing(x, key, doc) {
+    switch (key) {
+        case 'ca':
+            x += 1;
+        case 'start':
+        case 'stop':
+        case 'ss':
+            x += 6;
+            doc.setFontSize(7.5);
+            break;
+        case 'result':
+            x += 9;
+        case 'time':
+            x += 21;
+            doc.setFontSize(11);
+            break;
+        case 'js':
+        case 'ps':
+            doc.setFontSize(8.5);
+            x += 5;
+            break;
+    }
+    return x;    
+}
