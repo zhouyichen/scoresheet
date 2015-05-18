@@ -3,17 +3,12 @@
 	<head>
 		<meta charset = "UTF-8">
 		<title>Score sheet generator</title>
-		<style>
-			canvas {
-				display: hidden
-			}
-		</style>
 	</head>
 	<body>
 		<p><input type="file" name="xlfile" id="xlf"></p>
 		<pre id="out"></pre>
 		<br>
-		<canvas id="myCanvas"  width="1000" height="500" ></canvas>
+		<canvas id="myCanvas"  width="1000" height="500" style = "display : none" ></canvas>
 		<script src="js/jquery-1.11.3.min.js"></script>
 		<script src="js/html2canvas.min.js"></script>
 		<script src="js/jspdf.min.js"></script>
