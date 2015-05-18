@@ -135,19 +135,31 @@ function getNumberOfAttempts(events) {
     _.mapObject(events, function (val, key){
         var header = val[3];
         var attemps;
-        if (header[8] == '5') {
-            attemps = 5;
-        }
-        else if (header[6] == '3') {
-            attemps = 3;
-        }
-        else if (header[5] == '2') {
-            attemps = 2;
-        }
-        else {
-            attemps = 1;
-        }
         var e = key.slice(0, -2);
+        if (e != '333mbf') {
+            if (header[8] == '5') {
+                attemps = 5;
+            }
+            else if (header[6] == '3') {
+                attemps = 3;
+            }
+            else if (header[5] == '2') {
+                attemps = 2;
+            }
+            else {
+                attemps = 1;
+            }
+        } else {
+            if (header[12] == '# tried or DNS') {
+                attemps = 3;
+            }
+            else if (header[8] == '# tried or DNS') {
+                attemps = 2;
+            }
+            else {
+                attemps = 1;
+            }
+        }
         if (!numberOfAttempts[e]) {
             numberOfAttempts[e] = attemps;
         }
