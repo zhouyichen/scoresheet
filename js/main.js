@@ -264,7 +264,8 @@ function generatePDF(generator, competitionName) {
                 break;
         }  
     }
-    doc.save(competitionName+' Scoresheets.pdf');
+    doc.output('datauri');
+    // doc.save(competitionName+' Scoresheets.pdf');
 }
 
 function generateByAttempts(generator, doc, settings) {
