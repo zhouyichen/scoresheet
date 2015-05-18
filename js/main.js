@@ -28,12 +28,10 @@ var A4PtSize = {
     width : 595
 };
 
-var canva = document.getElementById("myCanvas");
+var images = [];
+var canva;
 var ctx;
 var scale = 10;
-
-ctx = canva.getContext("2d"); 
-ctx.font = "bold " + 35 * scale +"px Helvetica";
 
 
 /**
@@ -101,6 +99,12 @@ function to_array(workbook) {
     return result;
 }
 
+function setUpCanvas() {
+    canva = document.getElementById("myCanvas");
+    ctx = canva.getContext("2d"); 
+    ctx.font = "bold " + 35 * scale +"px Helvetica";
+}
+
 function generateFirstRounds(fileArray, groupByPlayer) {
     var regList = fileArray.Registration;
     var events = _.filter(regList[2], function (entry) {
@@ -110,7 +114,11 @@ function generateFirstRounds(fileArray, groupByPlayer) {
     competitionName += ' First Rounds';
     var competitiors = getCompetitors(regList);
     var numberOfAttempts = getNumberOfAttempts(_.omit(fileArray, 'Registration'));
+
+    setUpCanvas();
+
     var groupByPlayer = true;
+
     if (groupByPlayer == true) {
         var generator = generateByPlayer(regList, events, numberOfAttempts);
         generatePDF(generator, competitionName);
@@ -164,7 +172,6 @@ function getNumberOfAttempts(events) {
             numberOfAttempts[e] = attemps;
         }
     });
-    console.log(numberOfAttempts);
     return numberOfAttempts;
 }
 
@@ -384,10 +391,17 @@ function headerOptions(doc, yStart, yPlus) {
             x += 1;
             y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
             if (key == 'Name' && containsSpecial(value)){
-                ctx.scale(1/scale, 1/scale);
-                ctx.fillText(value, 5 * scale, 40 * scale);
-                ctx.scale(scale, scale);
-                var imgData = canva.toDataURL('image/png');
+                var imgData;
+                if (localStorage.getItem(value)) {
+                    imgData = localStorage.getItem(value);
+                }
+                else {
+                    ctx.scale(1/scale, 1/scale);
+                    ctx.fillText(value, 5 * scale, 40 * scale);
+                    ctx.scale(scale, scale);
+                    imgData = canva.toDataURL(value+'/png');
+                    localStorage.setItem(value, imgData);
+                }
                 ctx.clearRect (0 , 0 , canva.width, canva.height);
                 doc.addImage(imgData, 'PNG', x + settings.padding - 1, y - 16, 4 * canva.width/scale, 4 * canva.height/scale);
             }
