@@ -117,7 +117,7 @@ function generateFirstRounds(fileArray, groupByPlayer) {
 
     setUpCanvas();
 
-    var groupByPlayer = false;
+    var groupByPlayer = true; // default
 
     if (groupByPlayer == true) {
         var generator = generateByPlayer(regList, events, numberOfAttempts);
