@@ -117,15 +117,16 @@ function generateFirstRounds(fileArray, groupByPlayer) {
 
     setUpCanvas();
 
-    var groupByPlayer = true;
+    var groupByPlayer = false;
 
     if (groupByPlayer == true) {
         var generator = generateByPlayer(regList, events, numberOfAttempts);
-        generatePDF(generator, competitionName);
     }
     else { // group by events
-
+        var generator = generateByGruop(regList, events, numberOfAttempts);   
     }
+    console.log(generator);
+    generatePDF(generator, competitionName);
 }
 
 function getCompetitors(regList) {
@@ -212,6 +213,14 @@ function generateByPlayer(regList, events, numberOfAttempts) {
     return generator;
 }
 
+function generateByGruop(regList, events, numberOfAttempts) {
+    var generator = generateByPlayer(regList, events, numberOfAttempts);
+    generator.five = _.sortBy(generator.five, 'Event');
+    generator.three = _.sortBy(generator.three, 'Event');
+    generator.two = _.sortBy(generator.two, 'Event');
+    generator.one = _.sortBy(generator.one, 'Event');
+    return generator;
+}
 
 var AttemptsSettings = function (number, sheetPerPage) {
     this.number = number,
