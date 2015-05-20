@@ -123,7 +123,7 @@ function generateFirstRounds(fileArray, groupByPlayer) {
         var generator = generateByPlayer(regList, events, numberOfAttempts);
     }
     else { // group by events
-        var generator = generateByGruop(regList, events, numberOfAttempts);   
+        var generator = generateByEvent(regList, events, numberOfAttempts);   
     }
     console.log(generator);
     generatePDF(generator, competitionName);
@@ -213,7 +213,7 @@ function generateByPlayer(regList, events, numberOfAttempts) {
     return generator;
 }
 
-function generateByGruop(regList, events, numberOfAttempts) {
+function generateByEvent(regList, events, numberOfAttempts) {
     var generator = generateByPlayer(regList, events, numberOfAttempts);
     generator.five = _.sortBy(generator.five, 'Event');
     generator.three = _.sortBy(generator.three, 'Event');
