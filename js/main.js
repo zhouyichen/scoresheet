@@ -142,38 +142,51 @@ function getCompetitionName(regList) { return regList[0][0];
 function getNumberOfAttempts(events) {
     var numberOfAttempts = [];
     _.mapObject(events, function (val, key){
-        var header = val[3];
-        var attemps;
-        var e = key.slice(0, -2);
-        if (e != '333mbf') {
-            if (header[8] == '5') {
-                attemps = 5;
-            }
-            else if (header[6] == '3') {
-                attemps = 3;
-            }
-            else if (header[5] == '2') {
-                attemps = 2;
-            }
-            else {
-                attemps = 1;
-            }
-        } else {
-            if (header[12] == '# tried or DNS') {
-                attemps = 3;
-            }
-            else if (header[8] == '# tried or DNS') {
-                attemps = 2;
-            }
-            else {
-                attemps = 1;
-            }
-        }
+        var eventAttemps = getNumberOfAttemptsForRound (val, key);
+        var e = eventAttemps.name;
+        var attempts = eventAttemps.number;
         if (!numberOfAttempts[e]) {
-            numberOfAttempts[e] = attemps;
+            numberOfAttempts[e] = attempts;
         }
     });
     return numberOfAttempts;
+}
+
+/**
+ * get the number of attempts of a event for a particular round on a sheet
+ * @param  {Excel sheet} sheet [description]
+ * @param  {String} name  the name of the sheet
+ * @return {[String, int]}   The name of the event, and the number of attempts
+ */
+function getNumberOfAttemptsForRound (sheet, name) {
+    var header = sheet[3];
+    var attempts;
+    var e = name.slice(0, -2);
+    if (e != '333mbf') {
+        if (header[8] == '5') {
+            attempts = 5;
+        }
+        else if (header[6] == '3') {
+            attempts = 3;
+        }
+        else if (header[5] == '2') {
+            attempts = 2;
+        }
+        else {
+            attempts = 1;
+        }
+    } else { // the event is 333mbf
+        if (header[12] == '# tried or DNS') {
+            attempts = 3;
+        }
+        else if (header[8] == '# tried or DNS') {
+            attempts = 2;
+        }
+        else {
+            attempts = 1;
+        }
+    }
+    return {name: e, number: attempts};
 }
 
 function generateByPlayer(regList, events, numberOfAttempts) {
