@@ -1,4 +1,6 @@
 var xlf = document.getElementById('xlf');
+var xlsxArray;
+var fileReady = false;
 
 var eventNames = {
     '222' : '2×2 Cube',
@@ -64,8 +66,8 @@ function process(file) {
         var data = e.target.result;
         var arr = fixdata(data);
         var wb = XLSX.read(btoa(arr), {type: 'base64'});
-        var array = to_array(wb);
-        generateFirstRounds(array, true);
+        xlsxArray = to_array(wb);
+        fileReady = true;
     };
     reader.readAsArrayBuffer(file);
 }
@@ -89,6 +91,14 @@ function to_array(workbook) {
     return result;
 }
 
+function generate(){
+    if (fileReady) {
+        generateFirstRounds(xlsxArray, true);
+    }
+    else {
+        alert("Please choose a file");
+    }
+}
 
 function generateFirstRounds(fileArray, groupByPlayer) {
     var regList = fileArray.Registration;
