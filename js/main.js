@@ -190,3 +190,35 @@ function generateByRound(eventName, round, sheet, generator) {
 
 }
 
+function generateEmpty(event, round, attempts, number) {
+    var generator = new Generator();
+    var scoresheet = new Scoresheet('', '', eventNames[event], 'Round '+round);
+    var scoresheets = [];
+    if (event != '333mbf') {
+        for (var i=0; i<number; i++){
+            scoresheets.push(scoresheet);
+        }
+        switch(attempts) {
+            case 5:
+                generator.five=scoresheets;
+                break;
+            case 3:
+                generator.three=scoresheets;
+                break;
+            case 2:
+                generator.two=scoresheets;
+                break;
+            case 1:
+                generator.one=scoresheets;
+                break;
+        }        
+    } else {
+        scoresheet.Event = attempts;
+        for (var i = 0; i < number; i++){
+            scoresheets.push(scoresheet);
+        }
+        generator.mbf=scoresheets;
+    }
+    generatePDF(generator, eventNames[event]+' Round '+round);
+}
+
