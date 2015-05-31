@@ -10,7 +10,7 @@ var scale = 10;
 
 
 
-function generatePDF(generator, competitionName) {
+function generatePDF(generator, fileName) {
     var doc = new jsPDF('p', 'pt');
 
     var firstPage = true;
@@ -48,7 +48,7 @@ function generatePDF(generator, competitionName) {
                 break;
         }  
     }
-    doc.save(competitionName+' Scoresheets.pdf');
+    doc.save(fileName+'.pdf');
 }
 
 

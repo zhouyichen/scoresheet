@@ -48,7 +48,9 @@ var Generator = function () {
 }
 
 function generate(){
+    // generateEmpty('333', 2, 5, 32);
     if (xlsxArray) {
+        setUpCanvas();
         generateFirstRounds(xlsxArray, true);
     }
     else {
@@ -62,12 +64,10 @@ function generateFirstRounds(fileArray, groupByPlayer) {
         return _.contains(_.keys(eventNames), entry);
     });
     var competitionName = getCompetitionName(regList);
-    competitionName += ' First Rounds';
+    var fileName = competitionName + ' First Rounds';
     var competitiors = getCompetitors(regList);
     var numberOfAttempts = getNumberOfAttempts(_.omit(fileArray, 'Registration'));
-
-    setUpCanvas();
-
+    
     var groupByPlayer = true; // default
 
     if (groupByPlayer == true) {
@@ -77,7 +77,7 @@ function generateFirstRounds(fileArray, groupByPlayer) {
         var generator = generateByEvent(regList, events, numberOfAttempts);   
     }
     console.log(generator);
-    generatePDF(generator, competitionName);
+    generatePDF(generator, fileName);
 }
 
 function getCompetitors(regList) {
