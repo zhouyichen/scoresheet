@@ -48,7 +48,7 @@ var Generator = function () {
 }
 
 function generate(){
-    // generateEmpty('333', 2, 5, 32);
+    // generateEmpty('333', 3, 5, 12, 'FYO2015');
     if (xlsxArray) {
         setUpCanvas();
         generateFirstRounds(xlsxArray, true);
@@ -190,7 +190,7 @@ function generateByRound(eventName, round, sheet, generator) {
 
 }
 
-function generateEmpty(event, round, attempts, number) {
+function generateEmpty(event, round, attempts, number, competitionName) {
     var generator = new Generator();
     var scoresheet = new Scoresheet('', '', eventNames[event], 'Round '+round);
     var scoresheets = [];
@@ -219,6 +219,6 @@ function generateEmpty(event, round, attempts, number) {
         }
         generator.mbf=scoresheets;
     }
-    generatePDF(generator, eventNames[event]+' Round '+round);
+    generatePDF(generator, competitionName +' '+ eventNames[event]+' Round '+round);
 }
 
