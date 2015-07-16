@@ -53,7 +53,17 @@ function generatePDF(generator, fileName) {
 
 
 function setUpCanvas() {
-    canva = document.getElementById("myCanvas");
+    canva = document.createElement("CANVAS");
+    var width = document.createAttribute("width");
+    width.value = 1000;
+    var height = document.createAttribute("height");
+    height.value = 500;
+    var style = document.createAttribute("style");
+    style.value = "display:none";                          
+    canva.setAttributeNode(width);
+    canva.setAttributeNode(height);
+    canva.setAttributeNode(style);
+
     ctx = canva.getContext("2d"); 
     ctx.font = "bold " + 35 * scale +"px Helvetica";
 }
