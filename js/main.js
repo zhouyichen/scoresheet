@@ -35,6 +35,13 @@ var Scoresheet = function (player, index, event, round) {
     this.Round = round;
 }
 
+var MBFScoresheet = function (player, index, attempts, round) {
+    this.Name = player;
+    this.ID = index;
+    this.Attempts = attempts;
+    this.Round = round;
+}
+
 /**
  * The Generator object is to be passed into the generate pdf function.
  * It stores the scoresheet objects according to the number of attempts
@@ -148,14 +155,9 @@ function generateByPlayer(regList, events, numberOfAttempts) {
                 continue;
             }
             if (row[Number(e) + 7] == '1') {
-                // create a new player event
-                var scoresheet = new Scoresheet(row[1], row[0], eventNames[events[e]], 'Round ' + 1);
-                if (events[e] == '333mbf') {
-                    // change the event attribute to number of attempes instead for mbf
-                    scoresheet.event = numberOfAttempts[events[e]];
-                    generator.mbf.push(scoresheet);
-                }
-                else {
+                if (events[e] != '333mbf') {
+                    // create a new player event
+                    var scoresheet = new Scoresheet(row[1], row[0], eventNames[events[e]], 'Round ' + 1);
                     switch(numberOfAttempts[events[e]]) {
                         case 5:
                             (generator.five).push(scoresheet);
@@ -170,6 +172,10 @@ function generateByPlayer(regList, events, numberOfAttempts) {
                             (generator.one).push(scoresheet);
                             break;
                     }
+                }
+                else {
+                    var scoresheet = new MBFScoresheet(row[1], row[0], numberOfAttempts[events[e]], 'Round ' + 1);
+                    generator.mbf.push(scoresheet);
                 }
             }
         }

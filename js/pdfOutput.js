@@ -36,7 +36,7 @@ function generatePDF(generator, fileName) {
     if (generator.mbf.length > 0){
         if (!firstPage) { doc.addPage();}
         else {firstPage = false;}
-        switch ((generator.mbf)[0].event) {
+        switch ((generator.mbf)[0].Attempts) {
             case 3:
                 generateMBFByAttempts(generator.mbf, doc, threeAttemptsSettings);
                 break;
