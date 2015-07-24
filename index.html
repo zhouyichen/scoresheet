@@ -9,9 +9,13 @@
 
 	</head>
 	<body>
+		<div class="container">
+			<div class="blog-header" id="title">
+				<h1 class = "blog-title"> Scoresheet generator</h1>
+			</div>
 			<div class='row'><div class='col-sm-5 col-xs-10'>
-			<p><input type="file" class="filestyle" name="xlfile" data-size="sm" id="xlf"></p>
-			<p>
+				<p><input type="file" class="filestyle" name="xlfile" data-size="sm" id="xlf"></p>
+				<p>
 					<form class="input-group" id="grouping">
 						<label class="radio-inline">
 							<input type="radio" name="grouping" value="groupByPlayer" checked> Group by Players
@@ -20,9 +24,10 @@
 							<input type="radio" name="grouping" value="groupByEvent"> Group by Events
 						</label>
 					</form>
-			</p>
+				</p>
 				<button type="button" class="btn btn-default" id='generate'> Generate </button>
-		</div></div>
+			</div></div>
+		</div>
 		<script src="js/libraries/jquery-1.11.3.min.js"></script>
 		<script src="bootstrap/bootstrap.min.js"></script>
 		<script src="bootstrap/bootstrap-filestyle.min.js"></script>
