@@ -4,10 +4,9 @@ $(function(){
     });
 
     function generate(){
-        var generator = new PDFGenerator();
-        // generateEmpty('333', 3, 5, 12, 'FYO2015', generator);
+        // generateEmpty('333', 3, 5, 12, 'FYO2015');
         if (xlsxArray) {
-            generateFirstRounds(xlsxArray, generator, isGroupByPlayer());
+            generateFirstRounds(xlsxArray, isGroupByPlayer());
         }
         else {
             alert("Please choose a file");
@@ -18,7 +17,8 @@ $(function(){
         return ($('input[name=grouping]:checked', '#grouping').val() == "groupByPlayer");
     }
 
-    function generateFirstRounds(fileArray, generator, groupByPlayer) {
+    function generateFirstRounds(fileArray, groupByPlayer) {
+        var generator = new PDFGenerator();
         var regList = fileArray.Registration;
         var events = _.filter(regList[2], function (entry) {
             return _.contains(_.keys(eventNames), entry);
@@ -119,11 +119,12 @@ $(function(){
         generator.one = _.sortBy(generator.one, 'Event');
     }
 
-    function generateByRound(eventName, round, sheet, generator) {
+    function generateByRound(eventName, round, sheet) {
 
     }
 
-    function generateEmpty(event, round, attempts, number, competitionName, generator) {
+    function generateEmpty(event, round, attempts, number, competitionName) {
+        var generator = new PDFGenerator();
         for (var i = 0; i < number; i++) {
             generator.addScoresheet('', '', event, round, attempts);
         }
