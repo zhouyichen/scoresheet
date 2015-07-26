@@ -19,13 +19,6 @@ var PDFGenerator = function () {
     this.one = [];
     this.mbf = [];
 
-    /**
-     * Each Scoresheet represents the info on one scoresheet
-     * @param {string} player name
-     * @param {string} index  
-     * @param {string} event  for 333mbf, this will be the number of attempts
-     * @param {int} round  the round number
-     */
     this.addScoresheet = function (player, index, event, round, attempts) {
         var scoresheet = {
             Name    : player,
@@ -33,25 +26,31 @@ var PDFGenerator = function () {
             Event   : eventNames[event],
             Round   : 'Round ' + round
         };
-        if (event !== '333mbf') {
-            switch(attempts) {
-                case 5:
-                    (this.five).push(scoresheet);
-                    break;
-                case 3:
-                    (this.three).push(scoresheet);
-                    break;
-                case 2:
-                    (this.two).push(scoresheet);
-                    break;
-                case 1:
-                    (this.one).push(scoresheet);
-                    break;
-            }
-        } else {
-            scoresheet.attempts = attempts;
-            (this.mbf).push(scoresheet);
+        switch(attempts) {
+            case 5:
+                (this.five).push(scoresheet);
+                break;
+            case 3:
+                (this.three).push(scoresheet);
+                break;
+            case 2:
+                (this.two).push(scoresheet);
+                break;
+            case 1:
+                (this.one).push(scoresheet);
+                break;
         }
+    }
+
+    this.addMBFScoresheet = function (player, index, round, attempts) {
+        var scoresheet = {
+            Name    : player,
+            ID      : index,
+            Event   : "3×3 Multi-BF",
+            Round   : 'Round ' + round
+        };
+        scoresheet.attempts = attempts;
+        (this.mbf).push(scoresheet);
     }
 
     this.generatePDF = function (fileName) {

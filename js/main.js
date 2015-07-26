@@ -105,7 +105,11 @@ $(function(){
                     continue;
                 }
                 if (row[Number(e) + 7] == '1') {
-                    generator.addScoresheet(row[1], row[0], events[e], 1, numberOfAttempts[events[e]]);
+                    if (events[e] == '333mbf') {
+                        generator.addMBFScoresheet(row[1], row[0], 1, numberOfAttempts[events[e]]);
+                    } else {
+                        generator.addScoresheet(row[1], row[0], events[e], 1, numberOfAttempts[events[e]]);
+                    }   
                 }
             }
         });
