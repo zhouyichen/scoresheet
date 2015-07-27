@@ -108,7 +108,7 @@ $(function(){
                     if (events[e] == '333mbf') {
                         generator.addMBFScoresheet(row[1], row[0], 1, numberOfAttempts[events[e]]);
                     } else {
-                        generator.addScoresheet(row[1], row[0], events[e], 1, numberOfAttempts[events[e]]);
+                        generator.addScoresheet(row[1], row[0], eventNames[events[e]], 1, numberOfAttempts[events[e]]);
                     }   
                 }
             }

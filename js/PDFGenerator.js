@@ -23,7 +23,7 @@ var PDFGenerator = function () {
         var scoresheet = {
             Name    : player,
             ID      : index,
-            Event   : eventNames[event],
+            Event   : event,
             Round   : 'Round ' + round
         };
         switch(attempts) {
