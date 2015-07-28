@@ -19,6 +19,14 @@ var PDFGenerator = function () {
     this.one = [];
     this.mbf = [];
 
+    /**
+     * Add a new scoresheet in the queue for generating PDF
+     * @param {string} player   
+     * @param {integer} index  
+     * @param {string} event  all events except 3x3 cube multiple-blindfolded
+     * @param {integer} round
+     * @param {integer} attempts number of attempts of the event
+     */
     this.addScoresheet = function (player, index, event, round, attempts) {
         var scoresheet = {
             Name    : player,
@@ -42,6 +50,13 @@ var PDFGenerator = function () {
         }
     }
 
+    /**
+     * Add a new multiple-blindfolded scoresheet in the queue for generating PDF
+     * @param {string} player   
+     * @param {integer} index  
+     * @param {integer} round
+     * @param {integer} attempts number of attempts of the event
+     */
     this.addMBFScoresheet = function (player, index, round, attempts) {
         var scoresheet = {
             Name    : player,
@@ -53,6 +68,11 @@ var PDFGenerator = function () {
         (this.mbf).push(scoresheet);
     }
 
+    /**
+     * Generate the PDF for downloading
+     * @param  {String} fileName the name of the file
+     * @return {PDF}
+     */
     this.generatePDF = function (fileName) {
         setUpCanvas();
         var doc = new jsPDF('p', 'pt');
