@@ -127,11 +127,38 @@ $(function(){
 
     }
 
-    function generateEmpty(event, round, attempts, number, competitionName) {
+    function generateEmpty(eventName, round, attempts, number, competitionName) {
         var generator = new PDFGenerator();
         for (var i = 0; i < number; i++) {
-            generator.addScoresheet('', '', event, round, attempts);
+            generator.addScoresheet('', '', eventName, round, attempts);
         }
-        generator.generatePDF(competitionName +' '+ eventNames[event]+' Round '+round);
+        generator.generatePDF(competitionName +' '+ eventName +' Round '+round);
     }
+
+
+    function fillEmpty() {
+        var eventText = '<option selected="selected">Event</option>';
+        for (var i in eventNames) {
+            if (i != '333fm'){
+                eventText += '<option>' + eventNames[i] + '</option>';
+            }
+        }
+        $('#selectEvent').html(eventText);
+
+
+        var roundText = '<option>Round</option>';
+        for (var i = 1; i <= 4; i++){
+            roundText += '<option>' + i + '</option>';
+        }
+        $('#selectRound').html(roundText);
+
+
+        var attempts = [5, 3, 2, 1];
+        var attemptText = '<option>Number of Attempts</option>';
+        for (var i in attempts) {
+            attemptText += '<option>' + attempts[i] + '</option>';
+        }
+        $('#selectAttempts').html(attemptText);
+    }
+    fillEmpty();
 });
