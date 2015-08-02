@@ -3,8 +3,11 @@ $(function(){
         generate();
     });
 
+    $('#generateEmpty').mouseup(function (){
+        generateEmptyScoresheet();
+    });
+
     function generate(){
-        // generateEmpty('333', 3, 5, 12, 'FYO2015');
         if (xlsxArray) {
             generateFirstRounds(xlsxArray, isGroupByPlayer());
         }
@@ -125,6 +128,15 @@ $(function(){
 
     function generateByRound(eventName, round, sheet) {
 
+    }
+
+    function generateEmptyScoresheet() {
+        var eventName = $('#selectEvent').find("option:selected").val();
+        var round = $('#selectRound').find("option:selected").val();
+        var attempts = parseInt($('#selectAttempts').find("option:selected").val());
+        var number = parseInt($('#copies').val());
+        var competitionName = $('#compName').val();
+        generateEmpty(eventName, round, attempts, number, competitionName);
     }
 
     function generateEmpty(eventName, round, attempts, number, competitionName) {
