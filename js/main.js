@@ -132,10 +132,27 @@ $(function(){
 
     function generateEmptyScoresheet() {
         var eventName = $('#selectEvent').find("option:selected").val();
+        if (eventName == 'Event') {
+            eventName = '';
+        }
         var round = $('#selectRound').find("option:selected").val();
-        var attempts = parseInt($('#selectAttempts').find("option:selected").val());
+        if (round == 'Round'){
+            round = '';
+        }
+        var attemptsString = $('#selectAttempts').find("option:selected").val();
+        if (attemptsString == 'Number of Attempts'){
+            var attempts = 5;
+        } else {
+            var attempts = parseInt(attemptsString);
+        }
         var number = parseInt($('#copies').val());
+        if (!number) {
+            number = 1;
+        }
         var competitionName = $('#compName').val();
+        if (!competitionName) {
+            competitionName = '';
+        }
         generateEmpty(eventName, round, attempts, number, competitionName);
     }
 
