@@ -140,14 +140,15 @@ $(function(){
             round = '';
         }
         var attemptsString = $('#selectAttempts').find("option:selected").val();
+        var attempts;
         if (attemptsString == 'Number of Attempts'){
-            var attempts = 5;
+            attempts = eventDefaults[eventName].attempts;
         } else {
             var attempts = parseInt(attemptsString);
         }
         var number = parseInt($('#copies').val());
         if (!number) {
-            number = 1;
+            number = eventDefaults[eventName].number;
         }
         var competitionName = $('#compName').val();
         if (!competitionName) {
@@ -160,7 +161,7 @@ $(function(){
         var generator = new PDFGenerator();
         for (var i = 0; i < number; i++) {
             if (eventName != '3×3 Multi-BF') {
-            generator.addScoresheet('', '', eventName, round, attempts);
+                generator.addScoresheet('', '', eventName, round, attempts);
             } else {
                 generator.addMBFScoresheet('', '', round, attempts);
             }   
