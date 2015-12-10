@@ -16,7 +16,8 @@
 			<h3>Generate First Rounds Scoresheet</h3>
 			<p>Upload the complete registration xlsx file below:</p>
 			<div class='row'><div class='col-sm-5 col-xs-10'>
-				<p><input type="file" class="filestyle" name="xlfile" data-size="sm" id="xlf"></p>
+				<!-- <p><input type="file" class="filestyle" name="xlfile" data-size="sm" id="xlf"></p> -->
+				<p><input type="file" class="filestyle" data-size="sm" id="csv"></p>
 				<p>
 					<form class="input-group" id="grouping">
 						<label class="radio-inline">
@@ -27,6 +28,7 @@
 						</label>
 					</form>
 				</p>
+				<!-- <button type="button" class="btn btn-default" id='generate'> Generate</button> -->
 				<button type="button" class="btn btn-default" id='generate'> Generate</button>
 			</div></div>
 			<hr>
@@ -66,10 +68,10 @@
 		<script src="js/libraries/csvToArray.v2.1.min.js"></script>
 		<script src="js/libraries/xlsx.core.min.js"></script>
 		<script src="js/libraries/underscore.js"></script>
-		<script src="js/xlsxInput.js"></script>
 		<script src="js/eventNames.js"></script>
 		<script src="js/eventDefaults.js"></script>
 		<script src="js/PDFGenerator.js"></script>
 		<script src="js/main.js"></script>
+		<script src="js/process_csv.js"></script>
 	</body>
 </html>
