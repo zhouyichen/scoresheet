@@ -1,7 +1,7 @@
 $(function(){
-    $('#generate').mouseup(function (){
-        generate();
-    });
+    // $('#generate').mouseup(function (){
+    //     generate();
+    // });
 
     $('#generateEmpty').mouseup(function (){
         generateEmptyScoresheet();
