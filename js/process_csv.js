@@ -25,7 +25,6 @@ $(function(){
     $('#generate').mouseup(function (){
         var generator = new PDFGenerator();
         var numberOfAttempts = getNumberOfAttempts();
-        generateByPlayer(events, numberOfAttempts, generator);
         if (isGroupByPlayer()) {
             generateByPlayer(events, numberOfAttempts, generator);
         }
