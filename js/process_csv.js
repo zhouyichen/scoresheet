@@ -3,19 +3,38 @@ csvInput.addEventListener('change', readFile, false);
 var regList;
 var events;
 
+function isGroupByPlayer(){
+    return ($('input[name=grouping]:checked', '#grouping').val() == "groupByPlayer");
+}
+
 function readFile (evt) {
     var files = evt.target.files;
     var file = files[0];           
     var reader = new FileReader();
     reader.onload = function() {
         var csv = this.result;
-        regList = csv.csvToArray({rSep:'\n'});      
+        regList = csv.csvToArray({rSep:'\n'});
         var headerRow = regList[0]
         events = headerRow.slice(6, -3);
         attempsHTML();
     }
     reader.readAsText(file);
 }
+
+$(function(){
+    $('#generate').mouseup(function (){
+        var generator = new PDFGenerator();
+        var numberOfAttempts = getNumberOfAttempts();
+        generateByPlayer(events, numberOfAttempts, generator);
+        if (isGroupByPlayer()) {
+            generateByPlayer(events, numberOfAttempts, generator);
+        }
+        else { // group by events
+            generateByEvent(events, numberOfAttempts, generator);   
+        }
+        generator.generatePDF('First Round Scoresheets');
+    });
+});
 
 
 function attempsHTML() {
@@ -53,3 +72,29 @@ function getNumberOfAttempts() {
     return results;
 }
 
+function generateByPlayer(events, numberOfAttempts, generator) {
+    _.each(_.rest(regList, 1), function (row, id) {
+        id += 1;
+        for (var e in events) {
+            var eventCode = events[e];
+            if (eventCode == '333fm'){
+                continue;
+            }
+            if (row[Number(e) + 6] == '1') {
+                if (eventCode == '333mbf') {
+                    generator.addMBFScoresheet(row[1], id, 1, numberOfAttempts[eventCode]);
+                } else {
+                    generator.addScoresheet(row[1], id, eventNames[eventCode], 1, numberOfAttempts[eventCode]);
+                }   
+            }
+        }
+    });
+}
+
+function generateByEvent(events, numberOfAttempts, generator) {
+    generateByPlayer(events, numberOfAttempts, generator);
+    generator.five = _.sortBy(generator.five, 'Event');
+    generator.three = _.sortBy(generator.three, 'Event');
+    generator.two = _.sortBy(generator.two, 'Event');
+    generator.one = _.sortBy(generator.one, 'Event');
+}
