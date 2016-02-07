@@ -222,7 +222,7 @@ var PDFGenerator = function () {
         {title: 'Stopping', key: 'stop', width : 45},
         {title: 'Solved State', key: 'ss', width : 55},
         {title: 'Final Result', key: 'result', width : 130}, 
-        {title: 'Judge Sign', key: 'js', width : 60}, 
+        {title: 'Judge Init.', key: 'js', width : 60}, 
         {title: 'Player Sign', key: 'ps', width : 60}
     ];
 
