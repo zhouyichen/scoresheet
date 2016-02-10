@@ -222,7 +222,7 @@ var PDFGenerator = function () {
         {title: 'Stopping', key: 'stop', width : 45},
         {title: 'Solved State', key: 'ss', width : 55},
         {title: 'Final Result', key: 'result', width : 130}, 
-        {title: 'Judge Init.', key: 'js', width : 60}, 
+        {title: 'Judge Initial', key: 'js', width : 60}, 
         {title: 'Player Sign', key: 'ps', width : 60}
     ];
 
@@ -234,7 +234,7 @@ var PDFGenerator = function () {
         {title: 'Solved State', key: 'ss', width : 53},
         {title: 'Completed/Attempted', key: 'ca', width : 91},
         {title: 'Final Result', key: 'result', width : 124}, 
-        {title: 'Judge Sign', key: 'js', width : 52},
+        {title: 'Judge Initial', key: 'js', width : 52},
         {title: 'Player Sign', key: 'ps', width : 52}
     ];
 
@@ -351,6 +351,9 @@ var PDFGenerator = function () {
                 doc.setFontSize(11);
                 break;
             case 'js':
+                doc.setFontSize(8.5);
+                x += 7;
+                break;
             case 'ps':
                 doc.setFontSize(8.5);
                 x += 8;
@@ -376,6 +379,9 @@ var PDFGenerator = function () {
                 doc.setFontSize(11);
                 break;
             case 'js':
+                doc.setFontSize(8.5);
+                x += 4;
+                break;
             case 'ps':
                 doc.setFontSize(8.5);
                 x += 5;
