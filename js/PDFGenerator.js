@@ -6,7 +6,7 @@ var PDFGenerator = function () {
     var A4PtSize = {
         height : 842,
         width : 595,
-        topAndBottompadding: -5
+        topAndBottompadding: -9
     };
 
     var images = [];

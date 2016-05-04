@@ -64,7 +64,6 @@ function getNumberOfAttempts() {
         if (eventCode != '333fm') {
             var eventName = eventNames[eventCode];
             var numberOfAttempts = parseInt($('#'+eventCode).find("option:selected").val());
-            console.log(eventName, numberOfAttempts);
             results[eventCode] = numberOfAttempts;
         }
     });
