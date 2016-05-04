@@ -5,7 +5,8 @@
 var PDFGenerator = function () {
     var A4PtSize = {
         height : 842,
-        width : 595
+        width : 595,
+        topAndBottompadding: -5
     };
 
     var images = [];
@@ -115,7 +116,6 @@ var PDFGenerator = function () {
         doc.save(fileName+'.pdf');
     }
 
-
     function setUpCanvas() {
         canva = document.createElement("CANVAS");
         var width = document.createAttribute("width");
@@ -132,12 +132,12 @@ var PDFGenerator = function () {
         ctx.font = "bold " + 35 * scale +"px Helvetica";
     }
 
-
-    var AttemptsSettings = function (number, sheetPerPage) {
-        this.number = number,
-        this.sheetPerPage = sheetPerPage,
-        this.headerPlus = (A4PtSize.height / sheetPerPage - (25 * (number + 2)) - 5) / 2 - 30;
-        this.attempsPlus = this.headerPlus + 55;
+    var AttemptsSettings = function (numberOfAttempts, sheetPerPage) {
+        this.number = numberOfAttempts;
+        this.sheetPerPage = sheetPerPage;
+        this.spacePerSheet = (A4PtSize.height - 2 * A4PtSize.topAndBottompadding) / sheetPerPage;
+        this.headerPlus = (this.spacePerSheet - (25 * (numberOfAttempts + 2)) - 5) / 2;
+        this.attempsPlus = this.headerPlus + 25;
     }
 
     var fiveAttemptsSettings = new AttemptsSettings(5, 4);
@@ -145,20 +145,19 @@ var PDFGenerator = function () {
     var twoAttemptsSettings = new AttemptsSettings(2, 6);
     var oneAttemptSettings = new AttemptsSettings(1, 8);
 
-
     function generateByAttempts(generator, doc, settings) {
         var data = [];
         for (var a = 1; a <= settings.number; a++) {
             data.push({'attempt' : a});
         }
         var counter = 0;
-        var y;
+        var yStart = A4PtSize.topAndBottompadding;
         for (var scoresheet in generator) {
             if (counter == settings.sheetPerPage) {
                 counter = 0;
                 doc.addPage();
             }
-            y = counter * A4PtSize.height / settings.sheetPerPage;
+            y = yStart + counter * settings.spacePerSheet;
             doc.line(0, y, A4PtSize.width, y);
             var sc = generator[scoresheet];
             doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
@@ -168,7 +167,7 @@ var PDFGenerator = function () {
         for (var i = counter; i < settings.sheetPerPage; i++) {
             var sc = [];
             sc.Round = 'Round';
-            y = i * A4PtSize.height / settings.sheetPerPage;
+            y = yStart + i * settings.spacePerSheet;
             doc.line(0, y, A4PtSize.width, y);
             doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
             doc.autoTable(columns, data, attemptsOptions(doc, y, settings.attempsPlus, headerSpacing));
@@ -181,14 +180,14 @@ var PDFGenerator = function () {
             data.push({'attempt' : a});
         }
         var counter = 0;
-        var y;
+        var yStart = A4PtSize.topAndBottompadding;
 
         for (var scoresheet in generator) {
             if (counter == settings.sheetPerPage) {
                 counter = 0;
                 doc.addPage();
             }
-            y = counter * A4PtSize.height / settings.sheetPerPage;
+            y = yStart + counter * settings.spacePerSheet;
             doc.line(0, y, A4PtSize.width, y);
             var sc = generator[scoresheet];
             sc.Event = '3×3 Multi-BF';
@@ -200,7 +199,7 @@ var PDFGenerator = function () {
             var sc = [];
             sc.Event = '3×3 Multi-BF';
             sc.Round = 'Round';
-            y = i * A4PtSize.height / settings.sheetPerPage;
+            y = yStart + i * settings.spacePerSheet;
             doc.line(0, y, A4PtSize.width, y);
             doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
             doc.autoTable(MBFcolumns, data, attemptsOptions(doc, y, settings.attempsPlus, MBFHeaderSpacing));
@@ -256,7 +255,7 @@ var PDFGenerator = function () {
                 left : leftAndRight,
                 right : leftAndRight,
             },
-            startY : yStart + yPlus,
+            startY : yStart + yPlus - 30,
             renderHeaderCell: function (x, y, width, height, key, value, settings) {
                 // do nothing
             },
