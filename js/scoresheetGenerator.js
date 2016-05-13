@@ -2,7 +2,7 @@
  * The Generator object is to be passed into the generate pdf function.
  * It stores the scoresheet objects according to the number of attempts
  */
-var PDFGenerator = function () {
+var scoresheetGenerator = function () {
     var A4PtSize = {
         height : 842,
         width : 595,

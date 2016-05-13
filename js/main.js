@@ -21,7 +21,7 @@ $(function(){
     }
 
     function generateFirstRounds(fileArray, groupByPlayer) {
-        var generator = new PDFGenerator();
+        var generator = new scoresheetGenerator();
         var regList = fileArray.Registration;
         var events = _.filter(regList[2], function (entry) {
             return _.contains(_.keys(eventNames), entry);
@@ -158,7 +158,7 @@ $(function(){
     }
 
     function generateEmpty(eventName, round, attempts, number, competitionName) {
-        var generator = new PDFGenerator();
+        var generator = new scoresheetGenerator();
         for (var i = 0; i < number; i++) {
             if (eventName != '3×3 Multi-BF') {
                 generator.addScoresheet('', '', eventName, round, attempts);

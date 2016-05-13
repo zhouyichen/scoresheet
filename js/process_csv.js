@@ -23,7 +23,7 @@ function readFile (evt) {
 
 $(function(){
     $('#generate').mouseup(function (){
-        var generator = new PDFGenerator();
+        var generator = new scoresheetGenerator();
         var numberOfAttempts = getNumberOfAttempts();
         if (isGroupByPlayer()) {
             generateByPlayer(events, numberOfAttempts, generator);
