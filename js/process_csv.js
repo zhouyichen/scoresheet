@@ -14,7 +14,7 @@ function readFile (evt) {
     reader.onload = function() {
         var csv = this.result;
         regList = csv.csvToArray({rSep:'\n'});
-        var headerRow = regList[0]
+        var headerRow = regList[0];
         events = headerRow.slice(6, -3);
         attempsHTML();
     }
