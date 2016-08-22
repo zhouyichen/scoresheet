@@ -15,6 +15,7 @@ function readFile (evt) {
         var csv = this.result;
         regList = csv.csvToArray({rSep:'\n'});
         var headerRow = regList[0];
+        regList = _.sortBy(_.rest(regList, 1), 1);
         events = headerRow.slice(6, -3);
         attempsHTML();
     }
