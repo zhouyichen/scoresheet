@@ -72,7 +72,7 @@ function getNumberOfAttempts() {
 }
 
 function generateByPlayer(events, numberOfAttempts, generator) {
-    _.each(_.rest(regList, 1), function (row, id) {
+    _.each(regList, function (row, id) {
         id += 1;
         for (var e in events) {
             var eventCode = events[e];
