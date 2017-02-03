@@ -44,7 +44,7 @@ var eventDefaults = {
         number : 4,
         maxAttempts: 5
     },
-    'Clock' : {
+    'Rubik\'s Clock' : {
         attempts : 5,
         number : 4,
         maxAttempts: 5
