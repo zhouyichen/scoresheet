@@ -152,15 +152,15 @@ var scoresheetGenerator = function () {
         }
         var counter = 0;
         var yStart = A4PtSize.topAndBottompadding;
-        for (var scoresheet in generator) {
+        for (var sc in generator) {
             if (counter == settings.sheetPerPage) {
                 counter = 0;
                 doc.addPage();
             }
             y = yStart + counter * settings.spacePerSheet;
             doc.line(0, y, A4PtSize.width, y);
-            var sc = generator[scoresheet];
-            doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
+            var scoresheet = generator[sc];
+            doc.autoTable(header, [scoresheet], headerOptions(doc, y, settings.headerPlus));
             doc.autoTable(columns, data, attemptsOptions(doc, y, settings.attempsPlus, headerSpacing));
             counter++;
         }
