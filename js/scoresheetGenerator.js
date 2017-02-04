@@ -256,6 +256,7 @@ var scoresheetGenerator = function () {
                 right : leftAndRight,
             },
             startY : yStart + yPlus - 30,
+            overflow: false,
             renderHeaderCell: function (x, y, width, height, key, value, settings) {
                 // do nothing
             },
