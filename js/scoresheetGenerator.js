@@ -244,7 +244,7 @@ var scoresheetGenerator = function () {
         function containsSpecial(string){
             var allowed = 'abcdefghijklmnopqrstuvwxyz' +
                           'ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
-                          "1234567890 ×-.'";
+                          "1234567890 ×-.'()";
             return _.some(string, function(char) {
                 return !_.contains(allowed, char);
             });
