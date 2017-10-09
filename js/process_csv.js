@@ -2,6 +2,7 @@ var csvInput = document.getElementById('csv');
 csvInput.addEventListener('change', readFile, false);
 var regList;
 var events;
+var headerRow;
 
 function isGroupByPlayer(){
     return ($('input[name=grouping]:checked', '#grouping').val() == "groupByPlayer");
@@ -14,7 +15,7 @@ function readFile (evt) {
     reader.onload = function() {
         var csv = this.result;
         regList = csv.csvToArray({rSep:'\n'});
-        var headerRow = regList[0];
+        headerRow = regList[0];
         regList = _.sortBy(_.rest(regList, 1), 1);
         events = headerRow.slice(6, -3);
         attempsHTML();
@@ -72,8 +73,13 @@ function getNumberOfAttempts() {
 }
 
 function generateByPlayer(events, numberOfAttempts, generator) {
+    var add_group = headerRow[0].toUpperCase() === 'group'.toUpperCase();
     _.each(regList, function (row, id) {
         id += 1;
+        var name = row[1];
+        if (add_group == true) {
+            name = '(' + row[0].toUpperCase() + ') ' + name;
+        }
         for (var e in events) {
             var eventCode = events[e];
             if (eventCode == '333fm'){
@@ -81,9 +87,9 @@ function generateByPlayer(events, numberOfAttempts, generator) {
             }
             if (row[Number(e) + 6] == '1') {
                 if (eventCode == '333mbf') {
-                    generator.addMBFScoresheet(row[1], id, 1, numberOfAttempts[eventCode]);
+                    generator.addMBFScoresheet(name, id, 1, numberOfAttempts[eventCode]);
                 } else {
-                    generator.addScoresheet(row[1], id, eventNames[eventCode], 1, numberOfAttempts[eventCode]);
+                    generator.addScoresheet(name, id, eventNames[eventCode], 1, numberOfAttempts[eventCode]);
                 }   
             }
         }
