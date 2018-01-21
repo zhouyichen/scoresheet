@@ -4,7 +4,7 @@ var eventDefaults = {
         number : 4,
         maxAttempts: 5
     },
-    "Rubik's Cube" : {
+    "3×3 Cube" : {
         attempts : 5,
         number : 4,
         maxAttempts: 5
@@ -44,7 +44,7 @@ var eventDefaults = {
         number : 4,
         maxAttempts: 5
     },
-    'Rubik\'s Clock' : {
+    'Clock' : {
         attempts : 5,
         number : 4,
         maxAttempts: 5
@@ -76,9 +76,9 @@ var eventDefaults = {
         maxAttempts: 3
     },
     '3×3 With Feet' : {
-        attempts : 3,
-        number : 5,
-        maxAttempts: 3
+        attempts : 5,
+        number : 4,
+        maxAttempts: 5
     },
 
     '3×3 Multi-BF' : {

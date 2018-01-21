@@ -1,5 +1,5 @@
 var eventNames = {
-    '333' : "Rubik's Cube",
+    '333' : "3×3 Cube",
     '222' : '2×2 Cube',
     '444' : '4×4 Cube',
     '555' : '5×5 Cube',
@@ -11,7 +11,7 @@ var eventNames = {
     'minx' : 'Megaminx',
     'pyram' : 'Pyraminx',
     'skewb' : 'Skewb',
-    'clock' : 'Rubik\'s Clock',
+    'clock' : 'Clock',
     'sq1' : 'Square-1',
     
     '444bf' : '4×4 Blindfolded',
