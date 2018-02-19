@@ -228,10 +228,12 @@ var scoresheetGenerator = function () {
     var MBFcolumns = [
         {title: ' ', key: 'attempt', width : 5},
         {title: 'Displayed Time', key: 'time', width : 124},
-        {title: 'Starting', key: 'start', width : 34}, 
-        {title: 'Stopping', key: 'stop', width : 38},
-        {title: 'Solved State', key: 'ss', width : 53},
-        {title: 'Completed/Attempted', key: 'ca', width : 91},
+        // {title: 'Starting', key: 'start', width : 34}, 
+        // {title: 'Stopping', key: 'stop', width : 38},
+        // {title: 'Solved State', key: 'ss', width : 53},
+        {title: 'Time Limit', key: 'tl', width : 78}, 
+        {title: 'Penalties', key: 'pn', width : 55},
+        {title: 'Completed/Attempted', key: 'ca', width : 93},
         {title: 'Final Result', key: 'result', width : 124}, 
         {title: 'Judge Initial', key: 'js', width : 52},
         {title: 'Player Sign', key: 'ps', width : 52}
@@ -365,12 +367,18 @@ var scoresheetGenerator = function () {
     function MBFHeaderSpacing(x, key, doc) {
         switch (key) {
             case 'ca':
-                x += 1;
+                x += 0.5;
             case 'start':
             case 'stop':
             case 'ss':
                 x += 6;
-                doc.setFontSize(7.5);
+                doc.setFontSize(8);
+                break;
+            case 'tl':
+                x += 7;
+            case 'pn':
+                x += 6;
+                doc.setFontSize(11);
                 break;
             case 'result':
                 x += 9;
