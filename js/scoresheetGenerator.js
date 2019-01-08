@@ -323,7 +323,7 @@ var scoresheetGenerator = function () {
             },
             renderCell: function (x, y, width, height, key, value, row, settings) {
                 doc.setFontSize(9);
-                doc.setFillColor(row % 2 === 0 ? 245 : 255);
+                doc.setFillColor(row % 2 === 0 ? 240 : 255);
                 doc.rect(x, y, width, height, 'B');
                 y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
                 if (key == 'ca'){
