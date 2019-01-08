@@ -215,28 +215,27 @@ var scoresheetGenerator = function () {
 
     var columns = [
         {title: ' ', key: 'attempt', width : 5},
-        {title: 'Displayed Time', key: 'time', width : 130}, 
-        {title: 'Inspection', key: 'in', width : 45},
-        {title: 'Starting', key: 'start', width : 45}, 
-        {title: 'Stopping', key: 'stop', width : 45},
-        {title: 'Solved State', key: 'ss', width : 55},
-        {title: 'Final Result', key: 'result', width : 130}, 
-        {title: 'Judge Initial', key: 'js', width : 60}, 
-        {title: 'Player Sign', key: 'ps', width : 60}
+        {title: 'Displayed Time', key: 'time', width : 125},
+        {title: 'Scrambler', key: 'sc', width : 50},
+        {title: 'Inspection', key: 'in', width : 41},
+        {title: 'Starting', key: 'start', width : 39},
+        {title: 'Stopping', key: 'stop', width : 40},
+        {title: 'Solved State', key: 'ss', width : 50},
+        {title: 'Final Result', key: 'result', width : 125},
+        {title: 'Judge', key: 'js', width : 50},
+        {title: 'Player', key: 'ps', width : 50}
     ];
 
     var MBFcolumns = [
         {title: ' ', key: 'attempt', width : 5},
-        {title: 'Displayed Time', key: 'time', width : 124},
-        // {title: 'Starting', key: 'start', width : 34}, 
-        // {title: 'Stopping', key: 'stop', width : 38},
-        // {title: 'Solved State', key: 'ss', width : 53},
-        {title: 'Time Limit', key: 'tl', width : 78}, 
-        {title: 'Penalties', key: 'pn', width : 55},
-        {title: 'Completed/Attempted', key: 'ca', width : 93},
-        {title: 'Final Result', key: 'result', width : 124}, 
-        {title: 'Judge Initial', key: 'js', width : 52},
-        {title: 'Player Sign', key: 'ps', width : 52}
+        {title: 'Displayed Time', key: 'time', width : 115},
+        {title: 'Scrambler', key: 'sc', width : 50},
+        {title: 'Time Limit', key: 'tl', width : 60},
+        {title: 'Penalties', key: 'pn', width : 50},
+        {title: 'Completed/Attempted', key: 'ca', width : 80},
+        {title: 'Final Result', key: 'result', width : 115},
+        {title: 'Judge', key: 'js', width : 50},
+        {title: 'Player', key: 'ps', width : 50}
     ];
 
     function headerOptions(doc, yStart, yPlus) {
@@ -327,7 +326,7 @@ var scoresheetGenerator = function () {
                 doc.rect(x, y, width, height, 'B');
                 y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
                 if (key == 'ca'){
-                    doc.text('/', x + 43, y);
+                    doc.text('/', x + 38, y);
                 } else {
                     doc.text('' + value, x + settings.padding, y);
                 }
@@ -338,27 +337,32 @@ var scoresheetGenerator = function () {
     function headerSpacing(x, key, doc) {
         switch (key) {
             case 'start':
-                x += 3;
+                x += 2;
             case 'stop':
                 x += 2;
             case 'in':
+                x += 1;
             case 'ss':
+                x += 3;
                 doc.setFontSize(8);
-                x += 5;
                 break;
             case 'result':
-                x += 9;
+                x += 8;
             case 'time':
-                x += 22;
+                x += 20;
                 doc.setFontSize(11);
                 break;
+            case 'sc':
+                doc.setFontSize(10);
+                x += 3;
+                break;
             case 'js':
-                doc.setFontSize(8.5);
-                x += 7;
+                doc.setFontSize(10);
+                x += 12;
                 break;
             case 'ps':
-                doc.setFontSize(8.5);
-                x += 8;
+                doc.setFontSize(10);
+                x += 12;
                 break;
         }
         return x;
@@ -367,7 +371,8 @@ var scoresheetGenerator = function () {
     function MBFHeaderSpacing(x, key, doc) {
         switch (key) {
             case 'ca':
-                x += 0.5;
+                x += 4;
+                break;
             case 'start':
             case 'stop':
             case 'ss':
@@ -375,24 +380,28 @@ var scoresheetGenerator = function () {
                 doc.setFontSize(8);
                 break;
             case 'tl':
-                x += 7;
+                x += 3;
             case 'pn':
-                x += 6;
-                doc.setFontSize(11);
+                x += 5;
+                doc.setFontSize(10);
                 break;
             case 'result':
-                x += 9;
+                x += 5;
             case 'time':
-                x += 21;
+                x += 18;
                 doc.setFontSize(11);
                 break;
+            case 'sc':
+                doc.setFontSize(10);
+                x += 3;
+                break;
             case 'js':
-                doc.setFontSize(8.5);
-                x += 4;
+                doc.setFontSize(10);
+                x += 12;
                 break;
             case 'ps':
-                doc.setFontSize(8.5);
-                x += 5;
+                doc.setFontSize(10);
+                x += 12;
                 break;
         }
         return x;    
