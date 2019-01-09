@@ -215,8 +215,8 @@ var scoresheetGenerator = function () {
 
     var columns = [
         {title: ' ', key: 'attempt', width : 5},
-        {title: 'Displayed Time', key: 'time', width : 125},
         {title: 'Scrambler', key: 'sc', width : 50},
+        {title: 'Displayed Time', key: 'time', width : 125},
         {title: 'Inspection', key: 'in', width : 41},
         {title: 'Starting', key: 'start', width : 39},
         {title: 'Stopping', key: 'stop', width : 40},
@@ -228,8 +228,8 @@ var scoresheetGenerator = function () {
 
     var MBFcolumns = [
         {title: ' ', key: 'attempt', width : 5},
-        {title: 'Displayed Time', key: 'time', width : 115},
         {title: 'Scrambler', key: 'sc', width : 50},
+        {title: 'Displayed Time', key: 'time', width : 115},
         {title: 'Time Limit', key: 'tl', width : 60},
         {title: 'Penalties', key: 'pn', width : 50},
         {title: 'Completed/Attempted', key: 'ca', width : 80},
