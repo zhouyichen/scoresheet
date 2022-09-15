@@ -3,13 +3,28 @@ function urlParam(name){
     return results[1] || 0;
 }
 
-const wca_token = urlParam('code');
+const hash = window.location.hash.slice(1, window.location.hash.length - 1);
+const hashParams = new URLSearchParams(hash);
+if (hashParams.has('access_token')) {
+    this.wca_token = hashParams.get('access_token');
+}
 console.log('wca_token:' + wca_token);
+
+$.ajax({
+    url: "https://www.worldcubeassociation.org/api/v0/competitions/SingaporeMini2022/wcif",
+    type: "GET",
+    headers: {'Authorization': 'Bearer ' + wca_token, 'Content-Type': 'application/json'},
+    success: function(data, status){
+        console.log(data)       
+    },
+    error: function (error) {
+        console.log(error)       
+    }
+});
 
 $('#generateEmpty').mouseup(function (){
     generateEmptyScoresheet();
 });
-
 
 $(function(){
     // $('#generate').mouseup(function (){
