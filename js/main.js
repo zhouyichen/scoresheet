@@ -1,11 +1,20 @@
+function urlParam(name){
+    var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+    return results[1] || 0;
+}
+
+const wca_token = urlParam('code');
+console.log('wca_token:' + wca_token);
+
+$('#generateEmpty').mouseup(function (){
+    generateEmptyScoresheet();
+});
+
+
 $(function(){
     // $('#generate').mouseup(function (){
     //     generate();
     // });
-
-    $('#generateEmpty').mouseup(function (){
-        generateEmptyScoresheet();
-    });
 
     function generate(){
         if (xlsxArray) {
@@ -196,3 +205,4 @@ $(function(){
     }
     fillEmpty();
 });
+
