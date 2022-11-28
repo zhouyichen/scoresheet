@@ -1,3 +1,4 @@
+
 function urlParam(name){
     var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
     return results[1] || 0;
@@ -6,7 +7,7 @@ function urlParam(name){
 const hash = window.location.hash.slice(1, window.location.hash.length - 1);
 const hashParams = new URLSearchParams(hash);
 if (hashParams.has('access_token')) {
-    this.wca_token = hashParams.get('access_token');
+    var wca_token = hashParams.get('access_token');
 }
 console.log('wca_token:' + wca_token);
 
@@ -22,14 +23,15 @@ $.ajax({
     }
 });
 
-$('#generateEmpty').mouseup(function (){
-    generateEmptyScoresheet();
-});
 
 $(function(){
     // $('#generate').mouseup(function (){
     //     generate();
     // });
+
+    $('#generateEmpty').mouseup(function (){
+        generateEmptyScoresheet();
+    });
 
     function generate(){
         if (xlsxArray) {
@@ -220,4 +222,5 @@ $(function(){
     }
     fillEmpty();
 });
+
 
