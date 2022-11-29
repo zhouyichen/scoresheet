@@ -11,12 +11,14 @@ if (hashParams.has('access_token')) {
 }
 console.log('wca_token:' + wca_token);
 
+var compData;
 $.ajax({
     url: "https://www.worldcubeassociation.org/api/v0/competitions/SingaporeMini2022/wcif",
     type: "GET",
     headers: {'Authorization': 'Bearer ' + wca_token, 'Content-Type': 'application/json'},
     success: function(data, status){
-        console.log(data)       
+        console.log(data);
+        compData = data;    
     },
     error: function (error) {
         console.log(error)       
@@ -47,7 +49,7 @@ $(function(){
     }
 
     function generateFirstRounds(fileArray, groupByPlayer) {
-        var generator = new scoresheetGenerator();
+        var generator = new scoresheetGenerator(compData.name);
         var regList = fileArray.Registration;
         var events = _.filter(regList[2], function (entry) {
             return _.contains(_.keys(eventNames), entry);
