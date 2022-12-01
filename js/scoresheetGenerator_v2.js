@@ -7,18 +7,24 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         height: 842,
         width: 595,
         mid_width: 297,
-        maxCompnameWidth: 290,
+        maxCompnameWidth: 260,
         topAndBottompadding: -1
     };
     
     this.compName = compName;
 
-    this.lineHeight = 25;
+    var lineHeight = 25;
+    var infoTableXOffset = 15;
+    var attemptTableXOffset = 20;
+
+    var compnameWidth;
+    var compnameHeight;
+    var fontSize;
 
     var images = [];
     var canva;
     var ctx;
-    var scale = 10;
+    var scale = 11;
 
     this.five = [];
     this.three = [];
@@ -35,13 +41,13 @@ var scoresheetGenerator = function (compName="WCA Competition") {
      * @param {integer} attempts number of attempts of the event
      * @param {integer} group 
      */
-    this.addScoresheet = function (player, index, event, round, attempts, group = 1) {
+    this.addScoresheet = function (player, index, event, round, attempts, group = "") {
         var scoresheet = {
             Name: player,
             ID: index,
             Event: event,
             Round: 'Round ' + round,
-            Group: group
+            Group: 'Group ' + group
         };
         switch (attempts) {
             case 5:
@@ -87,13 +93,15 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         
         var doc = new jsPDF('p', 'pt');
 
-        var fontSize = 20;
+        fontSize = 20;
         while (true){
             doc.setTextColor(0); doc.setFontStyle('bold'); doc.setFontSize(fontSize);
             var textDim = doc.getTextDimensions(this.compName);
-            this.textWidth = textDim['w'];
-            this.textHeight = textDim['h'];
-            if (this.textWidth > maxCompnameWidth){
+            compnameWidth = textDim['w'];
+            compnameHeight = textDim['h'];
+            // console.log(compnameWidth, compnameHeight, fontSize)
+
+            if (compnameWidth > A4PtSize.maxCompnameWidth){
                 fontSize -= 1;
             }
             else {
@@ -161,12 +169,13 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         this.sheetPerPage = sheetPerColumn * 2;
         this.widthPerSheet = A4PtSize.width / 2;
         this.heightPerSheet = (A4PtSize.height - 2 * A4PtSize.topAndBottompadding) / sheetPerColumn;
-        this.headerPlus = (this.heightPerSheet - (25 * (numberOfAttempts + 2)) - 5) / 2;
-        this.attempsPlus = this.headerPlus + 25;
+        this.headerPlus = (this.heightPerSheet - (lineHeight * (numberOfAttempts + 2)) - 5) / 2;
+        this.attempsPlus = this.headerPlus + lineHeight;
         this.tableXStart = 50;
         this.numberXStart = 5;
-        this.vertPadding = 5;
-        this.infoStart = 41;
+        this.vertPadding = 5 * (6 - numberOfAttempts);
+        this.infoStart = 30;
+        this.lineHeight = lineHeight;
     }
 
     var fiveAttemptsSettings = new AttemptsSettings(5, 2);
@@ -195,35 +204,45 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             if (counter == settings.sheetPerPage) {
                 counter = 0;
                 doc.addPage();
+                var yStart = A4PtSize.topAndBottompadding;
+                var xStart = 0;
+                doc.line(A4PtSize.mid_width, 0, A4PtSize.mid_width, A4PtSize.height);
+                for (var i = 1; i < settings.sheetPerPage; i++) {
+                    var y = yStart + settings.heightPerSheet * i;
+                    doc.line(0, y, A4PtSize.width, y);
+                }
             }
             var y = yStart + Math.floor(counter/2) * settings.heightPerSheet;
             var sheetXStart = (counter % 2) * settings.widthPerSheet;
 
-            console.log(y, sheetXStart);
             var scoresheet = generator[sc];
 
-            doc.setTextColor(0); doc.setFontStyle('bold'); doc.setFontSize(20);
-            var textDim = doc.getTextDimensions(compName);
-            const textWidth = textDim['w'];
-            console.log(textWidth);
-            var xOffset = (A4PtSize.mid_width - textWidth) / 2 + sheetXStart;
-            console.log(xOffset)
-            doc.text(compName, xOffset, y+25, {align: 'center'});
+            // console.log(compnameWidth, compnameHeight);
 
-            y += settings.infoStart;
+            var xOffset = (A4PtSize.mid_width - compnameWidth*1.05) / 2 + sheetXStart;
+            var yOffset = (settings.infoStart) + y - (settings.infoStart -compnameHeight)/2 ;
+            // console.log(xOffset, yOffset, y+lineHeight, fontSize);
+            doc.setTextColor(0); doc.setFontStyle('bold'); doc.setFontSize(fontSize);
+            doc.text(compName, xOffset, yOffset);
 
+            // y += settings.infoStart - lineHeight;
+            // console.log("settings.infoStart, y", settings.infoStart, y);
             // render player and group info
-            doc.autoTable(headerRow1, [scoresheet], infoOptions(doc, sheetXStart, y, headerSpacing));
-            y += settings.lineHeight;
-            doc.autoTable(headerRow2, [scoresheet], infoOptions(doc, sheetXStart, y, headerSpacing));
-            y += settings.lineHeight + settings.vertPadding;
+            // console.log(sheetXStart, y);
+            y += 2;
+
+            doc.autoTable(headerRow1, [scoresheet], infoOptions(doc, sheetXStart+infoTableXOffset, y, headerSpacing));
+            y += lineHeight;
+            // // console.log(sheetXStart, y);
+            doc.autoTable(headerRow2, [scoresheet], infoOptions(doc, sheetXStart+infoTableXOffset, y,  headerSpacing));
+            y += lineHeight * 2 + settings.vertPadding * 2;
 
             // render attempts
             for (var a = 1; a <= settings.number; a++) {
-                generateAttempt(a, doc, xStart, y, settings, attemptsOptions, sheetXStart, headerSpacing)
-                y += settings.lineHeight + settings.vertPadding;
+                generateAttempt(a, doc, sheetXStart, y, settings, attemptsOptions, headerSpacing)
+                y += lineHeight * 2 + settings.vertPadding;
             }
-            generateAttempt("P", doc, xStart, y, settings, attemptsOptions, sheetXStart, headerSpacing)
+            generateAttempt("P", doc, sheetXStart, y, settings, attemptsOptions, headerSpacing, true)
 
             counter++;
         }
@@ -237,41 +256,43 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         // }
     }
 
-    function generateAttempt(a, doc, x, y, settings, attemptsOptions, sheetXStart, headerSpacing) {
-        doc.setTextColor(255); doc.setFontStyle('bold'); doc.setFontSize(18);
-        doc.text('' + a, x + settings.padding, y); doc.setTextColor(0);
-        doc.autoTable(attempRow1, [{}], attemptsOptions(doc, sheetXStart, y, headerSpacing));
-        doc.autoTable(attempRow2, [{}], attemptsOptions(doc, sheetXStart, y, headerSpacing));
+    function generateAttempt(a, doc, x, y, settings, attemptsOptions, headerSpacing, provisional) {
+        doc.setTextColor(0); doc.setFontStyle('bold'); doc.setFontSize(20);
+        // console.log('' + a, x+settings.numberXStart, y+lineHeight)
+        doc.text('' + a, x+settings.numberXStart, y+lineHeight*1.2);
+        doc.autoTable(attempRow1, [{}], attemptsOptions(doc, x+attemptTableXOffset, y, headerSpacing));
+        y += lineHeight;
+        doc.autoTable(attempRow2, [{}], attemptsOptions(doc, x+attemptTableXOffset, y, headerSpacing, provisional));
     }
 
     function generateMBFByAttempts(generator, doc, settings) {
         var data = [];
         for (var a = 1; a <= settings.number; a++) {
-            data.push({ 'attempt': a });
+            data.push({'attempt' : a});
         }
         var counter = 0;
         var yStart = A4PtSize.topAndBottompadding;
 
         for (var scoresheet in generator) {
-            if (counter == settings.sheetPerColumn) {
+            if (counter == settings.sheetPerPage) {
                 counter = 0;
                 doc.addPage();
             }
-            y = yStart + counter * settings.heightPerSheet;
+            y = yStart + counter * settings.spacePerSheet;
             doc.line(0, y, A4PtSize.width, y);
             var sc = generator[scoresheet];
             sc.Event = '3×3 Multi-BF';
-            doc.autoTable(header, [sc], infoOptions(doc, y, settings.headerPlus));
+            doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
             doc.autoTable(MBFcolumns, data, attemptsOptions(doc, y, settings.attempsPlus, MBFHeaderSpacing));
             counter++;
         }
-        for (var i = counter; i < settings.sheetPerColumn; i++) {
+        for (var i = counter; i < settings.sheetPerPage; i++) {
             var sc = [];
             sc.Event = '3×3 Multi-BF';
             sc.Round = 'Round';
-            y = yStart + i * settings.heightPerSheet;
+            y = yStart + i * settings.spacePerSheet;
             doc.line(0, y, A4PtSize.width, y);
-            doc.autoTable(header, [sc], infoOptions(doc, y, settings.headerPlus));
+            doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
             doc.autoTable(MBFcolumns, data, attemptsOptions(doc, y, settings.attempsPlus, MBFHeaderSpacing));
         }
     }
@@ -285,33 +306,34 @@ var scoresheetGenerator = function (compName="WCA Competition") {
 
 
     var headerRow1 = [
-        { title: 'Event', key: 'event', width: 180 },
-        { title: 'Round', key: 'round', width: 50 },
-        { title: 'Group', key: 'group', width: 50 },
+        { title: 'Event', key: 'Event', width: 140 },
+        { title: 'Round', key: 'Round', width: 70 },
+        { title: 'Group', key: 'Group', width: 70 },
     ];
     var headerRow2 = [
-        { title: 'ID', key: 'id', width: 40 },
-        { title: 'Name', key: 'name', width: 240 },
+        { title: 'ID', key: 'ID', width: 30 },
+        { title: 'Name', key: 'Name', width: 250 },
     ];
 
     var attempRow1 = [
-        { title: 'Scrambler', key: 'sc', width: 56 },
-        { title: 'Displayed Time', key: 'time', width: 112 },
-        { title: 'Final Result', key: 'result', width: 112 }
+        { title: 'Scrambler', key: 'sc', width: 54 },
+        { title: 'Displayed Time', key: 'time', width: 108 },
+        { title: 'Final Result', key: 'result', width: 108 }
     ];
     var attempRow2 = [
-        { title: 'Extra', key: 'extra', width: 56 },
-        { title: 'Insp.', key: 'in', width: 28 },
-        { title: 'Start', key: 'start', width: 28 },
-        { title: 'Stop', key: 'stop', width: 28 },
-        { title: 'State', key: 'ss', width: 28 },
-        { title: 'Judge', key: 'js', width: 56 },
-        { title: 'Player', key: 'ps', width: 56 }
+        { title: 'Extra Scr.', key: 'extra', width: 54 },
+        { title: 'Insp.', key: 'in', width: 27 },
+        { title: 'Start', key: 'start', width: 27 },
+        { title: 'Stop', key: 'stop', width: 27 },
+        { title: 'State', key: 'ss', width: 27 },
+        { title: 'Judge', key: 'js', width: 54 },
+        { title: 'Player', key: 'ps', width: 54 }
     ];
 
-    function infoOptions(doc, yStart, xStart, spacing) {
-        padding = 0;
-        var leftAndRight = 10;
+    function infoOptions(doc, xStart, yStart, spacing) {
+        padding = 2;
+        var leftMargin = xStart;
+        var rightMargin = A4PtSize.width - (leftMargin + 270);
         var topAndBottom = 10;
         function containsSpecial(string) {
             var allowed = 'abcdefghijklmnopqrstuvwxyz' +
@@ -321,14 +343,15 @@ var scoresheetGenerator = function (compName="WCA Competition") {
                 return !_.contains(allowed, char);
             });
         }
+        // console.log("xStart, yStart", xStart, yStart)
         return {
-            lineHeight: 25,
+            padding: padding,
+            lineHeight: lineHeight,
             margins: {
-                left: leftAndRight,
-                right: leftAndRight,
+                left: leftMargin,
+                right: rightMargin,
             },
             startY: yStart,
-            startC: xStart,
             overflow: false,
             renderHeaderCell: function (x, y, width, height, key, value, settings) {
                 // do nothing
@@ -337,11 +360,13 @@ var scoresheetGenerator = function (compName="WCA Competition") {
                 doc.setFontSize(10);
                 doc.setFont("helvetica");
                 doc.setFillColor(255);
+                // console.log(x, y, width, height);
                 doc.rect(x, y, width, height, 'S');
                 doc.setFontStyle('bold');
                 doc.setFontSize(14);
                 x += 1;
                 y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
+                // console.log("value", value);
                 if (key == 'Name' && containsSpecial(value)) {
                     var imgData;
                     if (localStorage.getItem(value)) {
@@ -355,14 +380,19 @@ var scoresheetGenerator = function (compName="WCA Competition") {
                         localStorage.setItem(value, imgData);
                     }
                     ctx.clearRect(0, 0, canva.width, canva.height);
-                    doc.addImage(imgData, 'PNG', x + settings.padding - 1, y - 16, 4 * canva.width / scale, 4 * canva.height / scale);
+                    doc.addImage(imgData, 'PNG', x + settings.padding - 1, y - 14, 4 * canva.width / scale, 4 * canva.height / scale);
                 }
                 else {
                     if (value) {
+                        doc.setTextColor(0);
+                        if (key == "Name") {
+                            doc.setFontSize(12);
+                        }
                         doc.text('' + value, x + settings.padding, y);
+                        doc.setTextColor(0);
                     }
                     else {
-                        doc.setTextColor(223);
+                        doc.setTextColor(191);
                         doc.text('' + key, x + settings.padding, y);
                         doc.setTextColor(0);
                     }
@@ -372,99 +402,44 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         };
     }
 
-    function infoOptions(doc, yStart, xStart, spacing) {
+
+
+    function attemptsOptions(doc, xStart, yStart, headerSpacing, provisional=false) {
         padding = 0;
-        var leftAndRight = 10;
+        var leftMargin = xStart;
+        var rightMargin = A4PtSize.width - (leftMargin + 265);
         var topAndBottom = 10;
-        function containsSpecial(string) {
-            var allowed = 'abcdefghijklmnopqrstuvwxyz' +
-                'ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
-                "1234567890 ×-.'()";
-            return _.some(string, function (char) {
-                return !_.contains(allowed, char);
-            });
-        }
+        var provisional = provisional;
         return {
-            lineHeight: 25,
+            padding: padding,
             margins: {
-                left: leftAndRight,
-                right: leftAndRight,
+                left: leftMargin,
+                right: rightMargin,
             },
             startY: yStart,
-            startC: xStart,
-            overflow: false,
+            lineHeight: lineHeight-5,
+            extendWidth: false,
             renderHeaderCell: function (x, y, width, height, key, value, settings) {
-                // do nothing
-            },
-            renderCell: function (x, y, width, height, key, value, row, settings) {
-                doc.setFontSize(10);
-                doc.setFont("helvetica");
-                doc.setFillColor(255);
-                doc.rect(x, y, width, height, 'S');
-                doc.setFontStyle('bold');
-                doc.setFontSize(14);
-                x += 1;
-                y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
-                if (key == 'Name' && containsSpecial(value)) {
-                    var imgData;
-                    if (localStorage.getItem(value)) {
-                        imgData = localStorage.getItem(value);
-                    }
-                    else {
-                        ctx.scale(1 / scale, 1 / scale);
-                        ctx.fillText(value, 5 * scale, 40 * scale);
-                        ctx.scale(scale, scale);
-                        imgData = canva.toDataURL(value + '/png');
-                        localStorage.setItem(value, imgData);
-                    }
-                    ctx.clearRect(0, 0, canva.width, canva.height);
-                    doc.addImage(imgData, 'PNG', x + settings.padding - 1, y - 16, 4 * canva.width / scale, 4 * canva.height / scale);
+                doc.setFontSize(9);
+                doc.setLineWidth(0.5);
+                if (key === "result") {
+                    doc.setLineWidth(2);
                 }
-                else {
-                    if (value) {
-                        doc.text('' + value, x + settings.padding, y);
-                    }
-                    else {
-                        doc.setTextColor(223);
-                        doc.text('' + key, x + settings.padding, y);
-                        doc.setTextColor(0);
-                    }
-
-                }
-            }
-        };
-    }
-
-    function attemptsOptions(doc, yStart, yPlus, headerSpacing) {
-        padding = 0;
-        var leftAndRight = 10;
-        var topAndBottom = 10;
-        return {
-            margins: {
-                left: leftAndRight,
-                right: leftAndRight,
-            },
-            startY: yStart + yPlus,
-            lineHeight: 25,
-            renderHeaderCell: function (x, y, width, height, key, value, settings) {
-                doc.setFillColor(255);
-                doc.setTextColor(0);
                 doc.rect(x, y, width, height, 'S');
                 x = headerSpacing(x, key, doc);
-                y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 1;
-                doc.text('' + value, x, y);
-                doc.setFontSize(7);
+                doc.setFontStyle('bold');
+                y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 ;
+                doc.setTextColor(223);
+                var text = value;
+                if (key === "extra" && provisional) {
+                    text = "Attempt No.";
+                    doc.setFontSize(9);
+                    x -= 2;
+                }
+                doc.text('' + text, x + settings.padding, y);
+                doc.setTextColor(0);
             },
             renderCell: function (x, y, width, height, key, value, row, settings) {
-                doc.setFontSize(9);
-                doc.setFillColor(row % 2 === 0 ? 240 : 255);
-                doc.rect(x, y, width, height, 'B');
-                y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
-                if (key == 'ca') {
-                    doc.text('/', x + 38, y);
-                } else {
-                    doc.text('' + value, x + settings.padding, y);
-                }
             }
         };
     }
@@ -472,9 +447,9 @@ var scoresheetGenerator = function (compName="WCA Competition") {
     function headerSpacing(x, key, doc) {
         switch (key) {
             case 'start':
-                x += 2;
+                x += 0;
             case 'stop':
-                x += 2;
+                x += 0;
             case 'in':
                 x += 1;
             case 'ss':
@@ -482,14 +457,14 @@ var scoresheetGenerator = function (compName="WCA Competition") {
                 doc.setFontSize(8);
                 break;
             case 'result':
-                x += 8;
+                x += 7;
             case 'time':
-                x += 20;
+                x += 14;
                 doc.setFontSize(11);
                 break;
             case 'sc':
                 doc.setFontSize(10);
-                x += 3;
+                x += 2;
                 break;
             case 'js':
                 doc.setFontSize(10);
@@ -498,6 +473,10 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             case 'ps':
                 doc.setFontSize(10);
                 x += 12;
+                break;
+            case 'extra':
+                doc.setFontSize(10);
+                x += 3;
                 break;
         }
         return x;
