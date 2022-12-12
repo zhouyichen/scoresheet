@@ -12,18 +12,46 @@ if (hashParams.has('access_token')) {
 console.log('wca_token:' + wca_token);
 
 var compData;
+var wcifData;
 $.ajax({
-    url: "https://www.worldcubeassociation.org/api/v0/competitions/SingaporeMini2022/wcif",
+    url: "https://www.worldcubeassociation.org/api/v0/competitions/NTUWelcome2023/wcif",
     type: "GET",
     headers: {'Authorization': 'Bearer ' + wca_token, 'Content-Type': 'application/json'},
     success: function(data, status){
         console.log(data);
-        compData = data;    
+        wcifData = data;
+        processCompData(wcifData);
     },
     error: function (error) {
         console.log(error)       
     }
 });
+
+function processCompData(wcifData){
+    // get all rounds of the competition
+    wcifData.valid_rounds = [];
+    for (const event of wcifData.events) {
+        for (const round of event.rounds) {
+            wcifData.valid_rounds.push(round.id);
+        }
+    }
+
+    // get all groups of the competition
+    wcifData.activityIdToGroup = {};
+    for (const venue of wcifData.schedule.venues) {
+        for (const room of venue.rooms) {
+            for (const act of room.activities) {
+                // this is a competing round
+                if (wcifData.valid_rounds.includes(act.activityCode)) {
+                    for (const group of act.childActivities) {
+                        wcifData.activityIdToGroup[group.id] = group;
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 
 $(function(){
@@ -180,7 +208,7 @@ $(function(){
         }
         var competitionName = $('#compName').val();
         if (!competitionName) {
-            competitionName = '';
+            competitionName = 'Singapore Championship 2023';
         }
         generateEmpty(eventName, round, attempts, number, competitionName);
     }
