@@ -47,7 +47,8 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             ID: index,
             Event: event,
             Round: 'Round ' + round,
-            Group: 'Group ' + group
+            Group: 'Group ' + group,
+            group: parseInt(group)
         };
         switch (attempts) {
             case 5:
@@ -172,7 +173,7 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         this.headerPlus = (this.heightPerSheet - (lineHeight * (numberOfAttempts + 2)) - 5) / 2;
         this.attempsPlus = this.headerPlus + lineHeight;
         this.tableXStart = 50;
-        this.numberXStart = 5;
+        this.numberXStart = 6;
         this.vertPadding = 5 * (6 - numberOfAttempts);
         this.infoStart = 30;
         this.lineHeight = lineHeight;
@@ -221,14 +222,9 @@ var scoresheetGenerator = function (compName="WCA Competition") {
 
             var xOffset = (A4PtSize.mid_width - compnameWidth*1.05) / 2 + sheetXStart;
             var yOffset = (settings.infoStart) + y - (settings.infoStart -compnameHeight)/2 ;
-            // console.log(xOffset, yOffset, y+lineHeight, fontSize);
             doc.setTextColor(0); doc.setFontStyle('bold'); doc.setFontSize(fontSize);
             doc.text(compName, xOffset, yOffset);
 
-            // y += settings.infoStart - lineHeight;
-            // console.log("settings.infoStart, y", settings.infoStart, y);
-            // render player and group info
-            // console.log(sheetXStart, y);
             y += 2;
 
             doc.autoTable(headerRow1, [scoresheet], infoOptions(doc, sheetXStart+infoTableXOffset, y, headerSpacing));
@@ -246,20 +242,12 @@ var scoresheetGenerator = function (compName="WCA Competition") {
 
             counter++;
         }
-        // for (var i = counter; i < settings.sheetPerPage; i++) {
-        //     var sc = [];
-        //     sc.Round = 'Round';
-        //     y = yStart + i * settings.heightPerSheet;
-        //     doc.line(0, y, A4PtSize.width, y);
-        //     doc.autoTable(headerCellWidths, [sc], infoOptions(doc, y, settings.headerPlus));
-        //     doc.autoTable(attempCellWidths, data, attemptsOptions(doc, y, settings.attempsPlus, headerSpacing));
-        // }
     }
 
     function generateAttempt(a, doc, x, y, settings, attemptsOptions, headerSpacing, provisional) {
         doc.setTextColor(0); doc.setFontStyle('bold'); doc.setFontSize(20);
         // console.log('' + a, x+settings.numberXStart, y+lineHeight)
-        doc.text('' + a, x+settings.numberXStart, y+lineHeight*1.2);
+        doc.text('' + a, x+settings.numberXStart, y+lineHeight*1.25);
         doc.autoTable(attempRow1, [{}], attemptsOptions(doc, x+attemptTableXOffset, y, headerSpacing));
         y += lineHeight;
         doc.autoTable(attempRow2, [{}], attemptsOptions(doc, x+attemptTableXOffset, y, headerSpacing, provisional));
