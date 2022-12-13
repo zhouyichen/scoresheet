@@ -11,180 +11,174 @@ if (hashParams.has('access_token')) {
 }
 console.log('wca_token:' + wca_token);
 
-var compData;
-var wcifData;
-$.ajax({
-    url: "https://www.worldcubeassociation.org/api/v0/competitions/NTUWelcome2023/wcif",
-    type: "GET",
-    headers: {'Authorization': 'Bearer ' + wca_token, 'Content-Type': 'application/json'},
-    success: function(data, status){
-        console.log(data);
-        wcifData = data;
-        processCompData(wcifData);
-    },
-    error: function (error) {
-        console.log(error)       
-    }
-});
-
-function processCompData(wcifData){
-    // get all rounds of the competition
-    wcifData.valid_rounds = [];
-    for (const event of wcifData.events) {
-        for (const round of event.rounds) {
-            wcifData.valid_rounds.push(round.id);
-        }
-    }
-
-    // get all groups of the competition
-    wcifData.activityIdToGroup = {};
-    for (const venue of wcifData.schedule.venues) {
-        for (const room of venue.rooms) {
-            for (const act of room.activities) {
-                // this is a competing round
-                if (wcifData.valid_rounds.includes(act.activityCode)) {
-                    for (const group of act.childActivities) {
-                        wcifData.activityIdToGroup[group.id] = group;
-                    }
-                }
-            }
-        }
-    }
-}
-
-
 
 $(function(){
-    // $('#generate').mouseup(function (){
-    //     generate();
-    // });
+    var wcifData;
+
+    $('#generateFirstRounds').mouseup(function (){
+        generateFirstRounds(wcifData);
+    });
 
     $('#generateEmpty').mouseup(function (){
         generateEmptyScoresheet();
     });
 
-    function generate(){
-        if (xlsxArray) {
-            generateFirstRounds(xlsxArray, isGroupByPlayer());
+    var managedComps;
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dateString = oneMonthAgo.toISOString();
+    $.ajax({
+        url: "https://www.worldcubeassociation.org/api/v0/competitions/?managed_by_me=true&start=" + dateString,
+        type: "GET",
+        headers: {'Authorization': 'Bearer ' + wca_token, 'Content-Type': 'application/json'},
+        success: function(data, status){
+            console.log(data);
+            managedComps = data;
+            displayComps(managedComps);
+        },
+        error: function (error) {
+            console.log(error)       
         }
-        else {
-            alert("Please choose a file");
+    });
+
+    function displayComps(managedComps) {
+        var compsSelectHTML = '<form class="input-group" id="compSelect">';
+        var compsText = '<option selected="selected">Select Competition</option>';
+        for (const comp of managedComps) {
+            const compName = comp.name;
+            const compId = comp.id;
+            var compStr = '<option value="' + compId + '"> ' + compName + '</option>'
+            compsText += compStr;
         }
-    }
-
-    function isGroupByPlayer(){
-        return ($('input[name=grouping]:checked', '#grouping').val() == "groupByPlayer");
-    }
-
-    function generateFirstRounds(fileArray, groupByPlayer) {
-        var generator = new scoresheetGenerator(compData.name);
-        var regList = fileArray.Registration;
-        var events = _.filter(regList[2], function (entry) {
-            return _.contains(_.keys(eventNames), entry);
+        compsSelectHTML += "</form>";
+        $('#competitions').html(compsText);
+    
+        const buttonText = '<button type="button" class="btn btn-default" id=\'fetchComp\'> Fetch compeition data</button>';
+        $('#selectButton').html(buttonText);
+        
+        
+        $('#fetchComp').mouseup(function (){
+            const compId = $('#competitions option:selected').val();
+            const compName = $('#competitions option:selected').text();
+            $('#compTitle').html("Generate Scoresheets for " + compName);
+            $.ajax({
+                url: "https://www.worldcubeassociation.org/api/v0/competitions/"+ compId +"/wcif",
+                type: "GET",
+                headers: {'Authorization': 'Bearer ' + wca_token, 'Content-Type': 'application/json'},
+                success: function(data, status){
+                    console.log(data);
+                    wcifData = data;
+                    console.log(wcifData);
+                    processCompData(wcifData);
+                    $('#beforeSelect').hide();
+                    $('#afterSelect').show();
+                },
+                error: function (error) {
+                    console.log(error)       
+                }
+            });
         });
-        var competitionName = getCompetitionName(regList);
-        var fileName = competitionName + ' First Rounds';
-        var competitiors = getCompetitors(regList);
-        var numberOfAttempts = getNumberOfAttempts(_.omit(fileArray, 'Registration'));
+    }
 
-        if (groupByPlayer) {
-            generateByPlayer(regList, events, numberOfAttempts, generator);
+
+    function processCompData(wcifData){
+        // get all rounds of the competition
+        wcifData.valid_rounds = [];
+        wcifData.roundToFormat = {};
+        for (const event of wcifData.events) {
+            for (const round of event.rounds) {
+                wcifData.valid_rounds.push(round.id);
+                wcifData.roundToFormat[round.id] = round.format;
+            }
         }
-        else { // group by events
-            generateByEvent(regList, events, numberOfAttempts, generator);   
+    
+        // get all groups of the competition
+        wcifData.activityIdToGroup = {};
+        for (const venue of wcifData.schedule.venues) {
+            for (const room of venue.rooms) {
+                for (const act of room.activities) {
+                    // this is a competing round
+                    if (wcifData.valid_rounds.includes(act.activityCode)) {
+                        if (act.childActivities.length === 0) {
+                            wcifData.activityIdToGroup[act.id] = act;
+                        }
+                        for (const group of act.childActivities) {
+                            wcifData.activityIdToGroup[group.id] = group;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function generateFirstRounds(wcifData) {
+        var generator = new scoresheetGenerator(wcifData.name);
+        var fileName = wcifData.name + ' First Rounds';
+
+        generateByIdWithGroup(wcifData, generator);
+        const grouping = $('input[name=grouping]:checked', '#grouping').val();
+
+        if (grouping == "groupByPlayer") {
+            generateByNameWithGroup(wcifData, generator)
+        }
+        else if (grouping == "groupByEvent") {
+            generateByEventGroup(wcifData, generator)
         }
         console.log(generator);
         generator.generatePDF(fileName);
     }
 
-    function getCompetitors(regList) {
-        var competitors = _.map(_.rest(regList, 3), function(row) {
-            return _.first(row, 2);
-        });
-        return competitors;
-    }
-
-    function getCompetitionName(regList) { return regList[0][0];
-    }
-
-    function getNumberOfAttempts(events) {
-        var numberOfAttempts = [];
-        _.mapObject(events, function (val, key){
-            var eventAttemps = getNumberOfAttemptsForRound (val, key);
-            var e = eventAttemps.name;
-            var attempts = eventAttemps.number;
-            if (!numberOfAttempts[e]) {
-                numberOfAttempts[e] = attempts;
-            }
-        });
-        return numberOfAttempts;
-    }
-
-    /**
-     * get the number of attempts of a event for a particular round on a sheet
-     * @param  {Excel sheet} sheet [description]
-     * @param  {String} name  the name of the sheet
-     * @return {[String, int]}   The name of the event, and the number of attempts
-     */
-    function getNumberOfAttemptsForRound (sheet, name) {
-        var header = sheet[3];
-        var attempts;
-        var e = name.slice(0, -2);
-        if (e != '333mbf') {
-            if (header[8] == '5') {
-                attempts = 5;
-            }
-            else if (header[6] == '3') {
-                attempts = 3;
-            }
-            else if (header[5] == '2') {
-                attempts = 2;
-            }
-            else {
-                attempts = 1;
-            }
-        } else { // the event is 333mbf
-            if (header[12] == '# tried or DNS') {
-                attempts = 3;
-            }
-            else if (header[8] == '# tried or DNS') {
-                attempts = 2;
-            }
-            else {
-                attempts = 1;
+    
+    function generateByIdWithGroup(wcifData, generator) {
+        for (const person of wcifData.persons) {
+            if (person.registration != null && person.registration.status == "accepted") {
+                const playerId = person.registrantId;
+                const playerName = person.name;
+                for (const assignment of person.assignments) {
+                    if (assignment.assignmentCode === "competitor") {
+                        const activity = wcifData.activityIdToGroup[assignment.activityId];
+                        const activityCode = activity.activityCode;
+                        const actArray = activityCode.split("-");
+                        const event = actArray[0];
+                        const round = actArray[1].slice(1);
+                        const group = actArray[2].slice(1);
+                        const roundId = event + "-r" + round;
+                        const format = wcifData.roundToFormat[roundId];
+                        const attempts = formats[format].attempts;
+                        if (event === '333fm') {
+                            continue;
+                        }
+                        if (event === '333mbf') {
+                            generator.addMBFScoresheet(playerName, playerId, round, attempts);
+                        } else {
+                            generator.addScoresheet(playerName, playerId, eventNames[actArray[0]],
+                                             round, attempts, group);
+                        }
+                    }
+                }
             }
         }
-        return {name: e, number: attempts};
     }
-
-    function generateByPlayer(regList, events, numberOfAttempts, generator) {
-        _.each(_.rest(regList, 3), function (row) {
-            for (var e in events) {
-                if (events[e] == '333fm'){
-                    continue;
-                }
-                if (row[Number(e) + 7] == '1') {
-                    if (events[e] == '333mbf') {
-                        generator.addMBFScoresheet(row[1], row[0], 1, numberOfAttempts[events[e]]);
-                    } else {
-                        generator.addScoresheet(row[1], row[0], eventNames[events[e]], 1, numberOfAttempts[events[e]]);
-                    }   
-                }
-            }
-        });
+    
+    function generateByNameWithGroup(wcifData, generator) {
+        generateByIdWithGroup(wcifData, generator);
+        generator.five = _.sortBy(generator.five, 'Name');
+        generator.three = _.sortBy(generator.three, 'Name');
+        generator.two = _.sortBy(generator.two, 'Name');
+        generator.one = _.sortBy(generator.one, 'Name');
     }
-
-    function generateByEvent(regList, events, numberOfAttempts, generator) {
-        generateByPlayer(regList, events, numberOfAttempts, generator);
+    
+    function generateByEventGroup(wcifData, generator) {
+        generateByIdWithGroup(wcifData, generator);
+        generator.five = _.sortBy(generator.five, 'group');
         generator.five = _.sortBy(generator.five, 'Event');
+        generator.three = _.sortBy(generator.three, 'group');
         generator.three = _.sortBy(generator.three, 'Event');
+        generator.two = _.sortBy(generator.two, 'group');
         generator.two = _.sortBy(generator.two, 'Event');
+        generator.one = _.sortBy(generator.one, 'group');
         generator.one = _.sortBy(generator.one, 'Event');
     }
 
-    function generateByRound(eventName, round, sheet) {
-
-    }
 
     function generateEmptyScoresheet() {
         var eventName = $('#selectEvent').find("option:selected").val();
@@ -208,7 +202,10 @@ $(function(){
         }
         var competitionName = $('#compName').val();
         if (!competitionName) {
-            competitionName = 'Singapore Championship 2023';
+            if (wcifData.name) {
+                competitionName = wcifData.name;
+            }
+            competitionName = 'WCA Competition';
         }
         generateEmpty(eventName, round, attempts, number, competitionName);
     }

@@ -13,28 +13,42 @@
 			<div class="blog-header" id="title">
 				<h1 class = "blog-title"> WCA Competition Scoresheet Generator</h1>
 			</div>
-			<a class="btn btn-success" id='wca' href="https://www.worldcubeassociation.org/oauth/authorize?client_id=b84924b3351804e16c2ec25f8d5db240c95af64275f5f5cb920e8354efa58e78&redirect_uri=https%3A%2F%2Fzhouyichen.github.io%2Fscoresheet%2F&response_type=token&scope=public+manage_competitions+dob+email">Log in with WCA</a>
-			<!-- <a class="btn btn-success" id='wca' href="https://www.worldcubeassociation.org/oauth/authorize?client_id=b84924b3351804e16c2ec25f8d5db240c95af64275f5f5cb920e8354efa58e78&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2F&response_type=token&scope=public+manage_competitions+dob+email">Log in with WCA</a> -->
-			<h3>Generate First Rounds Scoresheet</h3>
-			<p>Upload the registration CSV file below:</p>
-			<div class='row'><div class='col-sm-5 col-xs-10'>
-				<!-- <p><input type="file" class="filestyle" name="xlfile" data-size="sm" id="xlf"></p> -->
-				<p><input type="file" class="filestyle" data-size="sm" id="csv"></p>
-				<p>
-					<form class="input-group" id="grouping">
-						<label class="radio-inline">
-							<input type="radio" name="grouping" value="groupByPlayer" checked> Group by Players
-						</label>
-						<label class="radio-inline">
-							<input type="radio" name="grouping" value="groupByEvent"> Group by Events
-						</label>
-					</form>
-				</p>
-				<!-- <button type="button" class="btn btn-default" id='generate'> Generate</button> -->
-			</div></div>
-			<div class='row' id='numberOfAttempts'></div>
-			<br>
-			<button type="button" class="btn btn-default" id='generate'> Generate</button>
+
+			<div id="beforeSelect">
+				<a class="btn btn-success" id='wca' href="https://www.worldcubeassociation.org/oauth/authorize?client_id=b84924b3351804e16c2ec25f8d5db240c95af64275f5f5cb920e8354efa58e78&redirect_uri=https%3A%2F%2Fzhouyichen.github.io%2Fscoresheet%2F&response_type=token&scope=public+manage_competitions+dob+email">Login with WCA</a>
+				<!-- <a class="btn btn-success" id='wca' href="https://www.worldcubeassociation.org/oauth/authorize?client_id=b84924b3351804e16c2ec25f8d5db240c95af64275f5f5cb920e8354efa58e78&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2F&response_type=token&scope=public+manage_competitions+dob+email">Login with WCA</a> -->
+
+				<div class='row'>
+					<div class='col-sm-9 col-xs-12'>
+						<select class="form-control" id='competitions'>
+							<option selected="selected">Please login with WCA first</option>
+						</select>
+						<p id="selectButton"></p>
+					</div>
+				</div>
+			</div>
+			
+			<div id="afterSelect" hidden>
+				<h3 id="compTitle">Generate Scoresheets by rounds</h3>
+				<div class='row'><div class='col-sm-9 col-xs-12'>
+					<p>
+						<form class="input-group" id="grouping">
+							<label class="radio-inline">
+								<input type="radio" name="grouping" value="groupByEvent" checked> Order by Groups
+							</label>
+							<label class="radio-inline">
+								<input type="radio" name="grouping" value="groupByPlayer"> Order by Names
+							</label>
+							<label class="radio-inline">
+								<input type="radio" name="grouping" value="groupByIds"> Order by registration IDs
+							</label>
+						</form>
+					</p>
+				</div></div>
+
+				<button type="button" class="btn btn-default" id='generateFirstRounds'> Generate First Rounds</button>
+
+			</div>
 			<hr>
 			<div>
 				<h3>Generate Empty Scoresheets</h3>
@@ -77,6 +91,6 @@
 		<script src="js/eventDefaults.js"></script>
 		<script src="js/scoresheetGenerator_v2.js"></script>
 		<script src="js/main.js"></script>
-		<script src="js/process_csv.js"></script>
+		<!-- <script src="js/process_csv.js"></script> -->
 	</body>
 </html>
