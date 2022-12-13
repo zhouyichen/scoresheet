@@ -34,6 +34,7 @@ $(function(){
             console.log(data);
             managedComps = data;
             displayComps(managedComps);
+            $('#wca').hide();
         },
         error: function (error) {
             console.log(error)       
