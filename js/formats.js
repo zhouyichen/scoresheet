@@ -5,11 +5,11 @@ var formats = {
     },
     2: {
         name: "Best of 2",
-        attempts: 1
+        attempts: 2
     },
     3: {
         name: "Best of 3",
-        attempts: 1
+        attempts: 3
     },
     a: {
         name: "Average of 5",
