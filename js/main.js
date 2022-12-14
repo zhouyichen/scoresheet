@@ -84,6 +84,30 @@ $(function(){
         results.sort((a, b) => a['preRanking'] - b['preRanking']);
     }
 
+    
+    function generateButtonsForRounds(wcifData) {
+        var allRoundsHTML = "";
+        wcifData.nonFirstRounds.forEach(round => {
+            const roundId = round.id;
+            const numPlayers = round.results.length;
+            const maxGroups = Math.floor(numPlayers / 8);
+            var buttonText = '<button type="button" class="btn btn-default" id="b_' + roundId
+                + '">' + roundId + '</button> with';
+            var groupOptions = '';
+            for (var g = 1; g < maxGroups + 1; g++) {
+                var group_text = ' group';
+                if (g > 1) {
+                    group_text += 's';
+                }
+                groupOptions += '<option>' + g + group_text + '</option>';
+            }
+            var options = "<select class='form-control' id='g_" + roundId + "'>" + groupOptions + "</select>";
+            buttonText = buttonText + options;
+            allRoundsHTML += "<div class='col-sm-2 col-xs-4'>" + buttonText + "</div>";
+        });
+        $('#otherRounds').html(allRoundsHTML);
+    }
+    
     function processCompData(wcifData) {
         // get all rounds of the competition
         wcifData.firstRounds = [];
@@ -107,6 +131,9 @@ $(function(){
                 previousRound = round;
             });
         }
+    
+        // generate HTML for other rounds
+        generateButtonsForRounds(wcifData);
     
         // get all groups of the competition
         wcifData.activityIdToGroup = {};
