@@ -161,7 +161,6 @@ $(function(){
     }
     
     function generateByNameWithGroup(wcifData, generator) {
-        generateByIdWithGroup(wcifData, generator);
         generator.five = _.sortBy(generator.five, 'Name');
         generator.three = _.sortBy(generator.three, 'Name');
         generator.two = _.sortBy(generator.two, 'Name');
@@ -169,7 +168,6 @@ $(function(){
     }
     
     function generateByEventGroup(wcifData, generator) {
-        generateByIdWithGroup(wcifData, generator);
         generator.five = _.sortBy(generator.five, 'group');
         generator.five = _.sortBy(generator.five, 'Event');
         generator.three = _.sortBy(generator.three, 'group');
