@@ -1,5 +1,5 @@
 
-function urlParam(name){
+function urlParam(name) {
     var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
     return results[1] || 0;
 }
@@ -15,11 +15,11 @@ console.log('wca_token:' + wca_token);
 $(function(){
     var wcifData;
 
-    $('#generateFirstRounds').mouseup(function (){
+    $('#generateFirstRounds').mouseup(function () {
         generateFirstRounds(wcifData);
     });
 
-    $('#generateEmpty').mouseup(function (){
+    $('#generateEmpty').mouseup(function () {
         generateEmptyScoresheet();
     });
 
@@ -29,8 +29,8 @@ $(function(){
     $.ajax({
         url: "https://www.worldcubeassociation.org/api/v0/competitions/?managed_by_me=true&start=" + dateString,
         type: "GET",
-        headers: {'Authorization': 'Bearer ' + wca_token, 'Content-Type': 'application/json'},
-        success: function(data, status){
+        headers: { 'Authorization': 'Bearer ' + wca_token, 'Content-Type': 'application/json' },
+        success: function (data, status) {
             console.log(data);
             managedComps = data;
             displayComps(managedComps);
@@ -57,15 +57,15 @@ $(function(){
         $('#selectButton').html(buttonText);
         
         
-        $('#fetchComp').mouseup(function (){
+        $('#fetchComp').mouseup(function () {
             const compId = $('#competitions option:selected').val();
             const compName = $('#competitions option:selected').text();
             $('#compTitle').html("Generate Scoresheets for " + compName);
             $.ajax({
-                url: "https://www.worldcubeassociation.org/api/v0/competitions/"+ compId +"/wcif",
+                url: "https://www.worldcubeassociation.org/api/v0/competitions/" + compId + "/wcif",
                 type: "GET",
-                headers: {'Authorization': 'Bearer ' + wca_token, 'Content-Type': 'application/json'},
-                success: function(data, status){
+                headers: { 'Authorization': 'Bearer ' + wca_token, 'Content-Type': 'application/json' },
+                success: function (data, status) {
                     console.log(data);
                     wcifData = data;
                     processCompData(wcifData);
@@ -228,12 +228,12 @@ $(function(){
             eventName = '';
         }
         var round = $('#selectRound').find("option:selected").val();
-        if (round == 'Round'){
+        if (round == 'Round') {
             round = '';
         }
         var attemptsString = $('#selectAttempts').find("option:selected").val();
         var attempts;
-        if (attemptsString == 'Number of Attempts'){
+        if (attemptsString == 'Number of Attempts') {
             attempts = eventDefaults[eventName].attempts;
         } else {
             var attempts = parseInt(attemptsString);
@@ -261,14 +261,14 @@ $(function(){
                 generator.addMBFScoresheet('', '', round, attempts);
             }   
         }
-        generator.generatePDF(competitionName +' '+ eventName +' Round '+round);
+        generator.generatePDF(competitionName + ' ' + eventName + ' Round ' + round);
     }
 
 
     function fillEmpty() {
         var eventText = '<option selected="selected">Event</option>';
         for (var i in eventNames) {
-            if (i != '333fm'){
+            if (i != '333fm') {
                 eventText += '<option>' + eventNames[i] + '</option>';
             }
         }
@@ -276,7 +276,7 @@ $(function(){
 
 
         var roundText = '<option>Round</option>';
-        for (var i = 1; i <= 4; i++){
+        for (var i = 1; i <= 4; i++) {
             roundText += '<option>' + i + '</option>';
         }
         $('#selectRound').html(roundText);
