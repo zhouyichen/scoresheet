@@ -80,23 +80,32 @@ $(function(){
         });
     }
 
+    function sortByPreRanking(results) {
+        results.sort((a, b) => a['preRanking'] - b['preRanking']);
+    }
 
-    function processCompData(wcifData){
+    function processCompData(wcifData) {
         // get all rounds of the competition
-        wcifData.valid_rounds = [];
+        wcifData.firstRounds = [];
+        wcifData.nonFirstRounds = [];
         wcifData.roundToFormat = {};
         for (const event of wcifData.events) {
             var previousRound = null;
-            for (const round of event.rounds) {
-                wcifData.valid_rounds.push(round.id);
+            event.rounds.forEach((round, idx) => {
+                if (idx === 0) {
+                    wcifData.firstRounds.push(round.id);
+                } else {
+                    wcifData.nonFirstRounds.push(round);
+                }
                 wcifData.roundToFormat[round.id] = round.format;
                 if (previousRound != null) {
                     round.results.forEach((r, idx) => {
                         r['preRanking'] = previousRound.results.filter(pr => pr.personId === r.personId)[0].ranking;
                     });
+                    sortByPreRanking(round.results);
                 }
                 previousRound = round;
-            }
+            });
         }
     
         // get all groups of the competition
@@ -105,7 +114,7 @@ $(function(){
             for (const room of venue.rooms) {
                 for (const act of room.activities) {
                     // this is a competing round
-                    if (wcifData.valid_rounds.includes(act.activityCode)) {
+                    if (wcifData.firstRounds.includes(act.activityCode)) {
                         if (act.childActivities.length === 0) {
                             wcifData.activityIdToGroup[act.id] = act;
                         }
