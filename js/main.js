@@ -86,9 +86,16 @@ $(function(){
         wcifData.valid_rounds = [];
         wcifData.roundToFormat = {};
         for (const event of wcifData.events) {
+            var previousRound = null;
             for (const round of event.rounds) {
                 wcifData.valid_rounds.push(round.id);
                 wcifData.roundToFormat[round.id] = round.format;
+                if (previousRound != null) {
+                    round.results.forEach((r, idx) => {
+                        r['preRanking'] = previousRound.results.filter(pr => pr.personId === r.personId)[0].ranking;
+                    });
+                }
+                previousRound = round;
             }
         }
     
