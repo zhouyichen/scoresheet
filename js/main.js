@@ -68,8 +68,8 @@ $(function(){
                 success: function(data, status){
                     console.log(data);
                     wcifData = data;
-                    console.log(wcifData);
                     processCompData(wcifData);
+                    console.log(wcifData);
                     $('#beforeSelect').hide();
                     $('#afterSelect').show();
                 },
