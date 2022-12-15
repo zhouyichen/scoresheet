@@ -128,7 +128,7 @@ $(function(){
                 }
                     groupOptions += '<option value=' + g + '>' + g + group_text + '</option>';
             }
-            var options = "<select class='form-control' id='g_" + roundId + "'>" + groupOptions + "</select>";
+                var options = "<select class='form-control' id='g_" + roundId + "'>" + groupOptions + "</select><br>";
             buttonText = buttonText + options;
             allRoundsHTML += "<div class='col-sm-2 col-xs-4'>" + buttonText + "</div>";
             }
