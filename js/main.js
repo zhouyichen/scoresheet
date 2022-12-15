@@ -81,16 +81,43 @@ $(function(){
     }
 
     function sortByPreRanking(results) {
-        results.sort((a, b) => a['preRanking'] - b['preRanking']);
+        results.sort((a, b) => b['preRanking'] - a['preRanking']);
     }
 
+    function generateScoresheetForRounds(wcifData) {
+        wcifData.nonFirstRounds.forEach(round => {
+            const roundId = round.id;
+            const numPlayers = round.results.length;
+            $('#b_' + roundId).mouseup(function () {
+                const numGroups = $('#g_' + roundId).find("option:selected").val();
+                const playersPerGroup = Math.ceil(numPlayers / numGroups);
+                var generator = new scoresheetGenerator(wcifData.name);
+                var fileName = wcifData.name + " " + roundId;
+                const actArray = roundId.split("-");
+                const event = actArray[0];
+                const roundNum = actArray[1].slice(1);
+                const format = wcifData.roundToFormat[roundId];
+                const attempts = formats[format].attempts;
+                round.results.forEach((res, idx) => {
+                    person = wcifData.idToPerson[res.personId];
+                    const playerName = person.name;
+                    const group = Math.floor(idx / playersPerGroup) + 1;
+                    generator.addScoresheet(playerName, res.personId, eventNames[event],
+                                            roundNum, attempts, group);
+                });
+                console.log(generator);
+                generator.generatePDF(fileName);
+            });
+        });
+    }
     
     function generateButtonsForRounds(wcifData) {
         var allRoundsHTML = "";
         wcifData.nonFirstRounds.forEach(round => {
-            const roundId = round.id;
             const numPlayers = round.results.length;
-            const maxGroups = Math.floor(numPlayers / 8);
+            if (numPlayers > 0) {
+                const roundId = round.id;
+                const maxGroups = Math.floor(numPlayers / 8) + 1;
             var buttonText = '<button type="button" class="btn btn-default" id="b_' + roundId
                 + '">' + roundId + '</button> with';
             var groupOptions = '';
@@ -99,13 +126,24 @@ $(function(){
                 if (g > 1) {
                     group_text += 's';
                 }
-                groupOptions += '<option>' + g + group_text + '</option>';
+                    groupOptions += '<option value=' + g + '>' + g + group_text + '</option>';
             }
             var options = "<select class='form-control' id='g_" + roundId + "'>" + groupOptions + "</select>";
             buttonText = buttonText + options;
             allRoundsHTML += "<div class='col-sm-2 col-xs-4'>" + buttonText + "</div>";
+            }
         });
+        if (allRoundsHTML.length === 0) {
+            allRoundsHTML = "Please open the next round on WCA Live and sync again."
+        }
         $('#otherRounds').html(allRoundsHTML);
+    
+        wcifData.idToPerson = {};
+        wcifData.persons.forEach(person => {
+            wcifData.idToPerson[person.registrantId] = person;
+        });
+    
+        generateScoresheetForRounds(wcifData);
     }
     
     function processCompData(wcifData) {
@@ -194,7 +232,7 @@ $(function(){
                         if (event === '333mbf') {
                             generator.addMBFScoresheet(playerName, playerId, round, attempts);
                         } else {
-                            generator.addScoresheet(playerName, playerId, eventNames[actArray[0]],
+                            generator.addScoresheet(playerName, playerId, eventNames[event],
                                              round, attempts, group);
                         }
                     }
