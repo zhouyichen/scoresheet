@@ -23,6 +23,11 @@ $(function(){
         generateEmptyScoresheet();
     });
 
+    $('#reg_csv').mouseup(function () {
+        downloadRegCSV(wcifData);
+    });
+
+
     var managedComps;
     const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const dateString = oneMonthAgo.toISOString();
@@ -40,6 +45,41 @@ $(function(){
             console.log(error)       
         }
     });
+
+
+    function downloadRegCSV(wcifData) {
+        var string = 'data:text/csv;charset=utf-8, ID,Name,Email';
+        var event_to_idx = {};
+        wcifData.events.forEach(function (event, index) {
+            var eventID = event.id;
+            string += ',' + eventID;
+            event_to_idx[eventID] = index;
+        })
+        string += '\n';
+        for (const person of wcifData.persons) {
+            if (person.registration != null && person.registration.status == "accepted") {
+                var person_str = person.registrantId + ',' + person.name + ',' + person.email;
+                var eventFlags = Array(event_to_idx.length).fill(0);
+                for (const event of person.registration.eventIds) {
+                    eventFlags[event_to_idx[event]] = 1;
+                }
+                for (const eventFlag of eventFlags) {
+                    var eventStr = '';
+                    if (eventFlag === 1) {
+                        eventStr = '1'
+                    }
+                    person_str += ',' + eventStr;
+                }
+                string += person_str + '\n';
+            }
+        }
+        var encodedUri = encodeURI(string);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", wcifData.id+"_registration.csv");
+    
+        link.click();
+    }
 
     function displayComps(managedComps) {
         var compsSelectHTML = '<form class="input-group" id="compSelect">';
