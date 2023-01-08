@@ -222,7 +222,10 @@ $(function(){
             for (const room of venue.rooms) {
                 for (const act of room.activities) {
                     // this is a competing round
-                    if (wcifData.firstRounds.includes(act.activityCode)) {
+                    if (wcifData.firstRounds.includes(act.activityCode) || 
+                            ((act.activityCode.includes("333mbf-") && (! act.activityCode.includes("a2"))
+                              && (! act.activityCode.includes("a3"))))
+                        ) {
                         if (act.childActivities.length === 0) {
                             wcifData.activityIdToGroup[act.id] = act;
                         }
