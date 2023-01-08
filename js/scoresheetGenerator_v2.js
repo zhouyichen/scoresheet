@@ -135,13 +135,13 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             else { firstPage = false; }
             switch ((this.mbf)[0].attempts) {
                 case 3:
-                    generateMBFByAttempts(this.mbf, doc, threeAttemptsSettings);
+                    generateMBFByAttempts(this.mbf, doc, threeMBFAttemptsSettings);
                     break;
                 case 2:
-                    generateMBFByAttempts(this.mbf, doc, twoAttemptsSettings);
+                    generateMBFByAttempts(this.mbf, doc, twoMBFAttemptsSettings);
                     break;
                 case 1:
-                    generateMBFByAttempts(this.mbf, doc, oneAttemptSettings);
+                    generateMBFByAttempts(this.mbf, doc, oneMBFAttemptSettings);
                     break;
             }
         }
@@ -183,6 +183,19 @@ var scoresheetGenerator = function (compName="WCA Competition") {
     var threeAttemptsSettings = new AttemptsSettings(3, 2);
     var twoAttemptsSettings = new AttemptsSettings(2, 3);
     var oneAttemptSettings = new AttemptsSettings(1, 4);
+
+
+    var MBFAttemptsSettings = function (numberOfAttempts, sheetPerPage) {
+        this.number = numberOfAttempts;
+        this.sheetPerPage = sheetPerPage;
+        this.spacePerSheet = (A4PtSize.height - 2 * A4PtSize.topAndBottompadding) / sheetPerPage;
+        this.headerPlus = (this.spacePerSheet - (25 * (numberOfAttempts + 2)) - 5) / 2;
+        this.attempsPlus = this.headerPlus + 25;
+    }
+
+    var threeMBFAttemptsSettings = new MBFAttemptsSettings(3, 5);
+    var twoMBFAttemptsSettings = new MBFAttemptsSettings(2, 6);
+    var oneMBFAttemptSettings = new MBFAttemptsSettings(1, 8);
 
 
     function generateByAttempts(generator, doc, settings, compName) {
@@ -253,13 +266,76 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         doc.autoTable(attempRow2, [{}], attemptsOptions(doc, x+attemptTableXOffset, y, headerSpacing, provisional));
     }
 
+    // reusing old header options
+    function headerOptions(doc, yStart, yPlus) {
+        padding = 0;
+        var leftAndRight = 10;
+        var topAndBottom = 10;
+        function containsSpecial(string){
+            var allowed = 'abcdefghijklmnopqrstuvwxyz' +
+                          'ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
+                          "1234567890 ×-.'()";
+            return _.some(string, function(char) {
+                return !_.contains(allowed, char);
+            });
+        }
+        return {
+            lineHeight : 25,
+            margins : {
+                left : leftAndRight,
+                right : leftAndRight,
+            },
+            startY : yStart + yPlus - 30,
+            overflow: false,
+            renderHeaderCell: function (x, y, width, height, key, value, settings) {
+                // do nothing
+            },
+            renderCell: function (x, y, width, height, key, value, row, settings) {
+                doc.setFontSize(10);
+                doc.setFont("helvetica");
+                doc.setFillColor(255);
+                doc.rect(x, y, width, height, 'S');
+                doc.setFontStyle('bold');
+                doc.setFontSize(14);
+                x += 1;
+                y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
+                if (key == 'Name' && containsSpecial(value)){
+                    var imgData;
+                    if (localStorage.getItem(value)) {
+                        imgData = localStorage.getItem(value);
+                    }
+                    else {
+                        ctx.scale(1/scale, 1/scale);
+                        ctx.fillText(value, 5 * scale, 40 * scale);
+                        ctx.scale(scale, scale);
+                        imgData = canva.toDataURL(value+'/png');
+                        localStorage.setItem(value, imgData);
+                    }
+                    ctx.clearRect (0 , 0 , canva.width, canva.height);
+                    doc.addImage(imgData, 'PNG', x + settings.padding - 1, y - 16, 4 * canva.width/scale, 4 * canva.height/scale);
+                }
+                else {
+                    if (value) {
+                        doc.text('' + value, x + settings.padding, y);
+                    }
+                    else {
+                        doc.setTextColor(223);
+                        doc.text('' + key, x + settings.padding, y);
+                        doc.setTextColor(0);
+                    }
+                    
+                }
+            }
+        };
+    }
+
     function generateMBFByAttempts(generator, doc, settings) {
         var data = [];
         for (var a = 1; a <= settings.number; a++) {
             data.push({'attempt' : a});
         }
         var counter = 0;
-        var yStart = A4PtSize.topAndBottompadding;
+        var yStart = -9;
 
         for (var scoresheet in generator) {
             if (counter == settings.sheetPerPage) {
@@ -271,7 +347,7 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             var sc = generator[scoresheet];
             sc.Event = '3×3 Multi-BF';
             doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
-            doc.autoTable(MBFcolumns, data, attemptsOptions(doc, y, settings.attempsPlus, MBFHeaderSpacing));
+            doc.autoTable(MBFcolumns, data, (doc, y, settings.attempsPlus, MBFHeaderSpacing));
             counter++;
         }
         for (var i = counter; i < settings.sheetPerPage; i++) {
@@ -281,7 +357,7 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             y = yStart + i * settings.spacePerSheet;
             doc.line(0, y, A4PtSize.width, y);
             doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
-            doc.autoTable(MBFcolumns, data, attemptsOptions(doc, y, settings.attempsPlus, MBFHeaderSpacing));
+            doc.autoTable(MBFcolumns, data, MBFattemptsOptions(doc, y, settings.attempsPlus, MBFHeaderSpacing));
         }
     }
 
@@ -508,6 +584,42 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         }
         return x;
     }
+
+    function MBFattemptsOptions(doc, yStart, yPlus, headerSpacing) {
+        padding = 0;
+        var leftAndRight = 10;
+        var topAndBottom = 10;
+        return {
+            margins : {
+                left : leftAndRight,
+                right : leftAndRight,
+            },
+            startY: yStart + yPlus,
+            lineHeight : 25,
+            renderHeaderCell: function (x, y, width, height, key, value, settings) {
+                doc.setFillColor(255);
+                doc.setTextColor(0);
+                doc.rect(x, y, width, height, 'S');
+                x = headerSpacing(x, key, doc);
+                y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 1;
+                doc.text('' + value, x, y);
+                doc.setFontSize(7);
+            },
+            renderCell: function (x, y, width, height, key, value, row, settings) {
+                doc.setFontSize(9);
+                doc.setFillColor(row % 2 === 0 ? 240 : 255);
+                doc.rect(x, y, width, height, 'B');
+                y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
+                if (key == 'ca'){
+                    doc.text('/', x + 38, y);
+                } else {
+                    doc.text('' + value, x + settings.padding, y);
+                }
+            }
+        };
+    }
+
+
     var MBFcolumns = [
         { title: ' ', key: 'attempt', width: 5 },
         { title: 'Scrambler', key: 'sc', width: 50 },
