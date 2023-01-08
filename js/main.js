@@ -192,6 +192,9 @@ $(function(){
         wcifData.nonFirstRounds = [];
         wcifData.roundToFormat = {};
         for (const event of wcifData.events) {
+            if (event.id === "333fm") {
+                continue;
+            }
             var previousRound = null;
             event.rounds.forEach((round, idx) => {
                 if (idx === 0) {
