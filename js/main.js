@@ -265,25 +265,25 @@ $(function(){
                     if (assignment.assignmentCode === "competitor") {
                         const activity = wcifData.activityIdToGroup[assignment.activityId];
                         if (activity) {
-                        const activityCode = activity.activityCode;
-                        const actArray = activityCode.split("-");
-                        const event = actArray[0];
-                        const round = actArray[1].slice(1);
-                        const group = actArray[2].slice(1);
-                        const roundId = event + "-r" + round;
-                        const format = wcifData.roundToFormat[roundId];
-                        const attempts = formats[format].attempts;
-                        if (event === '333fm') {
-                            continue;
-                        }
-                        if (event === '333mbf') {
-                            generator.addMBFScoresheet(playerName, playerId, round, attempts);
-                        } else {
-                            generator.addScoresheet(playerName, playerId, eventNames[event],
-                                             round, attempts, group);
+                            const activityCode = activity.activityCode;
+                            const actArray = activityCode.split("-");
+                            const event = actArray[0];
+                            const round = actArray[1].slice(1);
+                            const group = actArray[2].slice(1);
+                            const roundId = event + "-r" + round;
+                            const format = wcifData.roundToFormat[roundId];
+                            const attempts = formats[format].attempts;
+                            if (event === '333fm') {
+                                continue;
+                            }
+                            if (event === '333mbf') {
+                                generator.addMBFScoresheet(playerName, playerId, round, attempts);
+                            } else {
+                                generator.addScoresheet(playerName, playerId, eventNames[event],
+                                                round, attempts, group);
                             }
                         }
-                    }
+                        }
                 }
             }
         }
