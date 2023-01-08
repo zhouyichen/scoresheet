@@ -264,6 +264,7 @@ $(function(){
                 for (const assignment of person.assignments) {
                     if (assignment.assignmentCode === "competitor") {
                         const activity = wcifData.activityIdToGroup[assignment.activityId];
+                        if (activity) {
                         const activityCode = activity.activityCode;
                         const actArray = activityCode.split("-");
                         const event = actArray[0];
@@ -280,6 +281,7 @@ $(function(){
                         } else {
                             generator.addScoresheet(playerName, playerId, eventNames[event],
                                              round, attempts, group);
+                            }
                         }
                     }
                 }
