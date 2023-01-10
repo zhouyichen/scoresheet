@@ -186,9 +186,10 @@ var scoresheetGenerator = function (compName="WCA Competition") {
 
 
     var MBFAttemptsSettings = function (numberOfAttempts, sheetPerPage) {
+        var topAndBottompadding = -9;
         this.number = numberOfAttempts;
         this.sheetPerPage = sheetPerPage;
-        this.spacePerSheet = (A4PtSize.height - 2 * A4PtSize.topAndBottompadding) / sheetPerPage;
+        this.spacePerSheet = (A4PtSize.height - 2 * topAndBottompadding) / sheetPerPage;
         this.headerPlus = (this.spacePerSheet - (25 * (numberOfAttempts + 2)) - 5) / 2;
         this.attempsPlus = this.headerPlus + 25;
     }
@@ -347,7 +348,7 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             var sc = generator[scoresheet];
             sc.Event = '3×3 Multi-BF';
             doc.autoTable(header, [sc], headerOptions(doc, y, settings.headerPlus));
-            doc.autoTable(MBFcolumns, data, (doc, y, settings.attempsPlus, MBFHeaderSpacing));
+            doc.autoTable(MBFcolumns, data, MBFattemptsOptions(doc, y, settings.attempsPlus, MBFHeaderSpacing));
             counter++;
         }
         for (var i = counter; i < settings.sheetPerPage; i++) {
