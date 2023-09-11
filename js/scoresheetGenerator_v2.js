@@ -452,6 +452,9 @@ var scoresheetGenerator = function (compName="WCA Competition") {
                         doc.setTextColor(0);
                         if (key == "Name") {
                             doc.setFontSize(12);
+                            if (value.length > 30) {
+                                doc.setFontSize(400/value.length);
+                            }
                         }
                         doc.text('' + value, x + settings.padding, y);
                         doc.setTextColor(0);
