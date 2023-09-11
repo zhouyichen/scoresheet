@@ -261,6 +261,24 @@ $(function(){
             if (person.registration != null && person.registration.status == "accepted") {
                 const playerId = person.registrantId;
                 const playerName = person.name;
+                if (person.assignments.length === 0) {
+                    if (person.registration.isCompeting) {
+                        for (const event of person.registration.eventIds) {
+                            const roundId = event + "-r1";
+                            const format = wcifData.roundToFormat[roundId];
+                            const attempts = formats[format].attempts;
+                            if (event === '333fm') {
+                                continue;
+                            }
+                            if (event === '333mbf') {
+                                generator.addMBFScoresheet(playerName, playerId, 1, attempts);
+                            } else {
+                                generator.addScoresheet(playerName, playerId, eventNames[event],
+                                                1, attempts);
+                            }
+                        }
+                    }
+                }
                 for (const assignment of person.assignments) {
                     if (assignment.assignmentCode === "competitor") {
                         const activity = wcifData.activityIdToGroup[assignment.activityId];
