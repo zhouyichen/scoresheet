@@ -346,6 +346,11 @@ $(function(){
         if (!number) {
             number = eventDefaults[eventName].number;
         }
+        var numGroups = parseInt($('#groups').val());
+        if (!numGroups) {
+            numGroups = 0;
+        }
+        var fillRank = $('#fillRank').is(':checked');
         var competitionName = $('#compName').val();
         if (!competitionName) {
             if (wcifData.name) {
@@ -353,17 +358,29 @@ $(function(){
             }
             competitionName = 'WCA Competition';
         }
-        generateEmpty(eventName, round, attempts, number, competitionName);
+        generateEmpty(eventName, round, attempts, number, competitionName, numGroups=numGroups, fillRank=fillRank);
     }
 
-    function generateEmpty(eventName, round, attempts, number, competitionName) {
+    function generateEmpty(eventName, round, attempts, number, competitionName, numGroups=0, fillRank=false) {
         var generator = new scoresheetGenerator(competitionName);
+        var playerPerGroup = number;
+        if (numGroups > 0) {
+            playerPerGroup = Math.ceil(number / numGroups);
+        }
         for (var i = 0; i < number; i++) {
+            var groupId = "";
+            var name = "";
+            if (fillRank) {
+                name = "(" + (i + 1) + ")";
+            }
+            if (numGroups > 0) {
+                groupId = Math.floor(i / playerPerGroup) + 1;
+            }
             if (eventName != '3×3 Multi-BF') {
-                generator.addScoresheet('', '', eventName, round, attempts);
+                generator.addScoresheet(name, '', eventName, round, attempts, group=groupId);
             } else {
-                generator.addMBFScoresheet('', '', round, attempts);
-            }   
+                generator.addMBFScoresheet(name, '', round, attempts);
+            }
         }
         generator.generatePDF(competitionName + ' ' + eventName + ' Round ' + round);
     }
