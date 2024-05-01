@@ -264,12 +264,12 @@ $(function(){
                 if (person.assignments.length === 0) {
                     if (person.registration.isCompeting) {
                         for (const event of person.registration.eventIds) {
-                            const roundId = event + "-r1";
-                            const format = wcifData.roundToFormat[roundId];
-                            const attempts = formats[format].attempts;
                             if (event === '333fm') {
                                 continue;
                             }
+                            const roundId = event + "-r1";
+                            const format = wcifData.roundToFormat[roundId];
+                            const attempts = formats[format].attempts;
                             if (event === '333mbf') {
                                 generator.addMBFScoresheet(playerName, playerId, 1, attempts);
                             } else {
