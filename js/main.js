@@ -140,7 +140,11 @@ $(function(){
                 const attempts = formats[format].attempts;
                 round.results.forEach((res, idx) => {
                     person = wcifData.idToPerson[res.personId];
-                    const playerName = person.name;
+                    let playerName = person.name;
+                    const wcaId = person.wcaId;
+                    if (wcaId == null) { // if wcaId is empty, add newcomer
+                        playerName = "(new) " + playerName;
+                    }
                     const group = Math.floor(idx / playersPerGroup) + 1;
                     generator.addScoresheet(playerName, res.personId, eventNames[event],
                                             roundNum, attempts, group);
@@ -260,7 +264,12 @@ $(function(){
         for (const person of wcifData.persons) {
             if (person.registration != null && person.registration.status == "accepted") {
                 const playerId = person.registrantId;
-                const playerName = person.name;
+                let playerName = person.name;
+                const wcaId = person.wcaId;
+                if (wcaId == null) { // if wcaId is empty, add newcomer
+                    playerName = "(new) " + playerName;
+                }
+                
                 if (person.assignments.length === 0) {
                     if (person.registration.isCompeting) {
                         for (const event of person.registration.eventIds) {
