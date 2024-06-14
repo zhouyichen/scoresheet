@@ -432,8 +432,13 @@ var scoresheetGenerator = function (compName="WCA Competition") {
                 x += 1;
                 y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
                 // console.log("value", value);
+                var special_char_start = value.indexOf('(');
+                if (value.length > 30 && special_char_start > 0) {
+                    value = value.slice(0, special_char_start-1);
+                }
                 if (key == 'Name' && containsSpecial(value)) {
                     var imgData;
+
                     if (localStorage.getItem(value)) {
                         imgData = localStorage.getItem(value);
                     }
