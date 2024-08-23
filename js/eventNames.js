@@ -13,11 +13,12 @@ var eventNames = {
     'skewb' : 'Skewb',
     'clock' : 'Clock',
     'sq1' : 'Square-1',
-    
+
     '444bf' : '4×4 Blindfolded',
     '555bf' : '5×5 Blindfolded',
 
     '333mbf' : '3×3 Multi-BF', // special scoresheet for this
 
-    '333fm' : 'Fewest Moves' // no need to generate scoresheet for this
+    '333fm' : 'Fewest Moves', // no need to generate scoresheet for this
+    'fto' : 'FTO',
 };

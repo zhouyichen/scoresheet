@@ -80,11 +80,14 @@ var eventDefaults = {
         number : 4,
         maxAttempts: 5
     },
-
     '3×3 Multi-BF' : {
         attempts : 2,
         number : 6,
         maxAttempts: 3
+    },
+    'FTO' : {
+        attempts : 5,
+        number : 4,
     },
     '' : {
         attempts : 5,
