@@ -85,7 +85,7 @@ $(function(){
         var compsSelectHTML = '<form class="input-group" id="compSelect">';
         var compsText = '<option selected="selected">Select Competition</option>';
         for (const comp of managedComps) {
-            const compName = comp.name;
+            const compName = comp.shortName;
             const compId = comp.id;
             var compStr = '<option value="' + compId + '"> ' + compName + '</option>'
             compsText += compStr;
