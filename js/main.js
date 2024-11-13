@@ -85,7 +85,7 @@ $(function(){
         var compsSelectHTML = '<form class="input-group" id="compSelect">';
         var compsText = '<option selected="selected">Select Competition</option>';
         for (const comp of managedComps) {
-            const compName = comp.shortName;
+            const compName = comp.name;
             const compId = comp.id;
             var compStr = '<option value="' + compId + '"> ' + compName + '</option>'
             compsText += compStr;
@@ -195,6 +195,7 @@ $(function(){
         wcifData.firstRounds = [];
         wcifData.nonFirstRounds = [];
         wcifData.roundToFormat = {};
+        wcifData.name = wcifData.shortName;
         for (const event of wcifData.events) {
             if (event.id === "333fm") {
                 continue;
