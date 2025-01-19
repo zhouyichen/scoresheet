@@ -189,11 +189,133 @@ $(function(){
     
         generateScoresheetForRounds(wcifData);
     }
+ 
+    function populateAssignmentsToActs(wcifData) {
+        const printer = new groupingPrinter(wcifData.name);
+        for (const person of wcifData.persons) {
+            if (person.registration != null && person.registration.status == "accepted") {
+
+                for (const assignment of person.assignments) {
+                    const activity = wcifData.activityIdToGroupAll[assignment.activityId];
+                    if (activity) {
+                        const activityCode = activity.activityCode;
+                        const normAct = !activityCode.includes("333mbf-");
+                        if (normAct) {
+                            const activityCode = activity.activityCode;
+                            person.shortName = printer.formatName(person.name);
+                            const perconCopy = {...person};
+                            perconCopy.staffPrev = false;
+                            perconCopy.staffNext = false;
+                            perconCopy.competePrev = false;
+                            perconCopy.competeNext = false;
+                            if (assignment.assignmentCode === "competitor") {
+                                wcifData.actCodeToCompetitors[activityCode].push(perconCopy);
+                            } else if (assignment.assignmentCode === "staff-judge") {
+                                wcifData.actCodeToJudges[activityCode].push(perconCopy);
+                            } else if (assignment.assignmentCode === "staff-scrambler") {
+                                wcifData.actCodeToScramblers[activityCode].push(perconCopy);
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    
+    function generateButtonsForGrouping(wcifData) {
+        wcifData.actCodeToCompetitors = {};
+        wcifData.actCodeToJudges = {};
+        wcifData.actCodeToScramblers = {};
+        // check the wcif data, for each venue/room, show 3 buttons
+        // 1. First rounds only 2. non-first rounds only 3. all rounds
+        // for each button, bind a mouseup event to use groupingPrinter class to generate the grouping PDF
+        for (const venueIdx in wcifData.schedule.venues) {
+            var venue = wcifData.schedule.venues[venueIdx];
+            console.log(venue);
+            for (const roomIdx in venue.rooms) {
+                var room = venue.rooms[roomIdx];
+                var roomName = room.name;
+                var roomHTML = "<h3>" + roomName + "</h3>";
+                // var conciseRoomName = roomName.replace(/ /g, "_");
+                //show 3 buttons: 1. First rounds only 2. non-first rounds only 3. all rounds
+                var firstRoundsId = "fr_" + venueIdx + "_" + roomIdx;
+                var nonFirstRoundsId = "nfr_" + venueIdx + "_" + roomIdx;
+                var allRoundsId = "ar_" + venueIdx + "_" + roomIdx;
+                roomHTML += '<button type="button" class="btn btn-default" id=' + firstRoundsId + '">First Rounds Only</button>';
+                roomHTML += '<button type="button" class="btn btn-default" id=' + nonFirstRoundsId + '">Non-First Rounds Only</button>';
+                roomHTML += '<button type="button" class="btn btn-default" id=' + allRoundsId + '">All Rounds</button>';
+                
+                room.firstRoundsActs = [];
+                room.nonFirstRoundsActs = [];
+                room.allCompetingActs = [];
+                for (const act of room.activities) {
+                    var isCompetingAct = false;
+                    if (wcifData.firstRounds.includes(act.activityCode)) {
+                        room.firstRoundsActs.push(act);
+                        isCompetingAct = true;
+                    }
+                    if (wcifData.nonFirstRoundIds.includes(act.activityCode)) {
+                        room.nonFirstRoundsActs.push(act);
+                        isCompetingAct = true;
+                    }
+                    if (isCompetingAct) {
+                        room.allCompetingActs.push(act);
+                        for (const group of act.childActivities) {
+                            wcifData.actCodeToCompetitors[group.activityCode] = [];
+                            wcifData.actCodeToJudges[group.activityCode] = [];
+                            wcifData.actCodeToScramblers[group.activityCode] = [];
+                        }
+                        if (act.childActivities.length === 0) {
+                            wcifData.actCodeToCompetitors[act.activityCode] = [];
+                            wcifData.actCodeToJudges[act.activityCode] = [];
+                            wcifData.actCodeToScramblers[act.activityCode] = [];
+                        }
+                    }
+                }
+                $('#groupingButtons').append(roomHTML);
+            }
+        }
+
+        populateAssignmentsToActs(wcifData);
+
+
+        // Use event delegation to bind mouseup events
+        $('#groupingButtons').on('mouseup', 'button', function () {
+            var buttonId = $(this).attr('id');
+            var [type, venueIdx, roomIdx] = buttonId.split('_');
+            // convert venueIdx and roomIdx to integer
+            venueIdx = parseInt(venueIdx);
+            roomIdx = parseInt(roomIdx);
+            var room = wcifData.schedule.venues[venueIdx].rooms[roomIdx];
+            var roomName = room.name;
+            var generator = new groupingPrinter(wcifData.name);
+            generator.checkStaffGrouping(wcifData);
+            var fileName;
+
+            if (type === 'fr') {
+                console.log("firstRoundsId clicked");
+                fileName = roomName + '_First_Rounds';
+                generator.generatePDF(room.firstRoundsActs, wcifData, fileName);
+            } else if (type === 'nfr') {
+                console.log("nonFirstRoundsId clicked");
+                fileName = roomName + '_Non_First_Rounds';
+                generator.generatePDF(room.nonFirstRoundsActs, wcifData,  fileName);
+            } else if (type === 'ar') {
+                console.log("allRoundsId clicked");
+                fileName = roomName + '_All_Rounds';
+                generator.generatePDF(room.allCompetingActs, wcifData,  fileName);
+            }
+        });
+    }
     
     function processCompData(wcifData) {
         // get all rounds of the competition
         wcifData.firstRounds = [];
         wcifData.nonFirstRounds = [];
+        wcifData.nonFirstRoundIds = [];
         wcifData.roundToFormat = {};
         wcifData.name = wcifData.shortName;
         for (const event of wcifData.events) {
@@ -206,6 +328,7 @@ $(function(){
                     wcifData.firstRounds.push(round.id);
                 } else {
                     wcifData.nonFirstRounds.push(round);
+                    wcifData.nonFirstRoundIds.push(round.id);
                 }
                 wcifData.roundToFormat[round.id] = round.format;
                 if (previousRound != null) {
@@ -223,6 +346,7 @@ $(function(){
     
         // get all groups of the competition
         wcifData.activityIdToGroup = {};
+        wcifData.activityIdToGroupAll = {};
         for (const venue of wcifData.schedule.venues) {
             for (const room of venue.rooms) {
                 for (const act of room.activities) {
@@ -233,14 +357,28 @@ $(function(){
                         ) {
                         if (act.childActivities.length === 0) {
                             wcifData.activityIdToGroup[act.id] = act;
+                            wcifData.activityIdToGroupAll[act.id] = act;
                         }
                         for (const group of act.childActivities) {
                             wcifData.activityIdToGroup[group.id] = group;
+                            wcifData.activityIdToGroupAll[group.id] = group;
                         }
                     }
+                    if (wcifData.nonFirstRoundIds.includes(act.activityCode) || 
+                        ((act.activityCode.includes("333mbf-") && (! act.activityCode.includes("a2"))
+                        && (! act.activityCode.includes("a3"))))
+                    ) {
+                    if (act.childActivities.length === 0) {
+                        wcifData.activityIdToGroupAll[act.id] = act;
+                    }
+                    for (const group of act.childActivities) {
+                        wcifData.activityIdToGroupAll[group.id] = group;
+                    }
+                }
                 }
             }
         }
+        generateButtonsForGrouping(wcifData);
     }
 
     function generateFirstRounds(wcifData) {
@@ -259,6 +397,8 @@ $(function(){
         console.log(generator);
         generator.generatePDF(fileName);
     }
+
+
 
     
     function generateByIdWithGroup(wcifData, generator) {
