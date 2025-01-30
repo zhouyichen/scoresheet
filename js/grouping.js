@@ -28,6 +28,7 @@ var groupingPrinter = function (compName="WCA Competition") {
     var colWidth = (A4PtSize.width - initX * 2) / numCols;
     var pageStartY = 50;
     var groupIndent = 70;
+    var roleSpacing = nameFontSize + 5;
 
     var images = [];
     var canva;
@@ -110,12 +111,14 @@ var groupingPrinter = function (compName="WCA Competition") {
                 doc.text("Scramblers (" + scramblers.length + ")", initX, currentY);
                 currentY += groupFontSize + 1;
                 currentY = this.listPersons(currentY, scramblers, doc, prefix="[ ] ");
+                currentY += roleSpacing;
 
                 currentY = this.setNextY(currentY, judges, doc);
                 doc.setFontStyle('bold'); doc.setFontSize(roleFontSize);
                 doc.text("Judges (" + judges.length + ")", initX, currentY);
                 currentY += groupFontSize + 1;
                 currentY = this.listPersons(currentY, judges, doc, prefix="[ ] ");
+                currentY += roleSpacing;
 
                 if (competitors.length > 0) {
                     currentY = this.setNextY(currentY, competitors, doc);
@@ -159,7 +162,7 @@ var groupingPrinter = function (compName="WCA Competition") {
                 doc.setFontStyle('bold');
                 const textDim = doc.getTextDimensions(personName);
                 compnameWidth = textDim['w'];
-                doc.line(currentX+11, currentY+2, currentX + compnameWidth + 1, currentY+2);
+                doc.line(currentX+11, currentY+2, currentX + compnameWidth + 12, currentY+2);
             }
 
             doc.text(prefix + personName, currentX, currentY);
