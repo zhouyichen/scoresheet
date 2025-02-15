@@ -28,7 +28,7 @@ var groupingPrinter = function (compName="WCA Competition") {
     var colWidth = (A4PtSize.width - initX * 2) / numCols;
     var pageStartY = 50;
     var groupIndent = 70;
-    var roleSpacing = nameFontSize + 5;
+    var roleSpacing = nameFontSize + 3;
 
     var images = [];
     var canva;

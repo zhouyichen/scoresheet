@@ -251,7 +251,11 @@ $(function(){
                 room.firstRoundsActs = [];
                 room.nonFirstRoundsActs = [];
                 room.allCompetingActs = [];
-                for (const act of room.activities) {
+                var roomActs = room.activities;
+                // sort acts by startTime in ascending order
+                roomActs.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+                for (const act of roomActs) {
                     var isCompetingAct = false;
                     if (wcifData.firstRounds.includes(act.activityCode)) {
                         room.firstRoundsActs.push(act);
