@@ -317,6 +317,8 @@ $(function(){
         wcifData.nonFirstRounds = [];
         wcifData.nonFirstRoundIds = [];
         wcifData.roundToFormat = {};
+        wcifData.roundIdToCutoff = {};
+
         wcifData.name = wcifData.shortName;
         for (const event of wcifData.events) {
             if (event.id === "333fm") {
@@ -331,6 +333,7 @@ $(function(){
                     wcifData.nonFirstRoundIds.push(round.id);
                 }
                 wcifData.roundToFormat[round.id] = round.format;
+                wcifData.roundIdToCutoff[round.id] = {'cutoff': round.cutoff, 'timeLimit': round.timeLimit};
                 if (previousRound != null) {
                     round.results.forEach((r, idx) => {
                         r['preRanking'] = previousRound.results.filter(pr => pr.personId === r.personId)[0].ranking;
@@ -367,14 +370,14 @@ $(function(){
                     if (wcifData.nonFirstRoundIds.includes(act.activityCode) || 
                         ((act.activityCode.includes("333mbf-") && (! act.activityCode.includes("a2"))
                         && (! act.activityCode.includes("a3"))))
-                    ) {
-                    if (act.childActivities.length === 0) {
-                        wcifData.activityIdToGroupAll[act.id] = act;
+                        ) {
+                        if (act.childActivities.length === 0) {
+                            wcifData.activityIdToGroupAll[act.id] = act;
+                        }
+                        for (const group of act.childActivities) {
+                            wcifData.activityIdToGroupAll[group.id] = group;
+                        }
                     }
-                    for (const group of act.childActivities) {
-                        wcifData.activityIdToGroupAll[group.id] = group;
-                    }
-                }
                 }
             }
         }
@@ -418,13 +421,15 @@ $(function(){
                                 continue;
                             }
                             const roundId = event + "-r1";
+                            const cutoff = wcifData.roundIdToCutoff[roundId].cutoff;
+                            const timeLimit = wcifData.roundIdToCutoff[roundId].timeLimit;
                             const format = wcifData.roundToFormat[roundId];
                             const attempts = formats[format].attempts;
                             if (event === '333mbf') {
                                 generator.addMBFScoresheet(playerName, playerId, 1, attempts);
                             } else {
                                 generator.addScoresheet(playerName, playerId, eventNames[event],
-                                                1, attempts);
+                                                1, attempts, "", cutoff, timeLimit);
                             }
                         }
                     }
@@ -439,6 +444,8 @@ $(function(){
                             const round = actArray[1].slice(1);
                             const group = actArray[2].slice(1);
                             const roundId = event + "-r" + round;
+                            const cutoff = wcifData.roundIdToCutoff[roundId].cutoff;
+                            const timeLimit = wcifData.roundIdToCutoff[roundId].timeLimit;
                             const format = wcifData.roundToFormat[roundId];
                             const attempts = formats[format].attempts;
                             if (event === '333fm') {
@@ -448,7 +455,7 @@ $(function(){
                                 generator.addMBFScoresheet(playerName, playerId, round, attempts);
                             } else {
                                 generator.addScoresheet(playerName, playerId, eventNames[event],
-                                                round, attempts, group);
+                                                round, attempts, group, cutoff, timeLimit);
                             }
                         }
                         }

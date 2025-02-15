@@ -16,6 +16,8 @@ var scoresheetGenerator = function (compName="WCA Competition") {
     var lineHeight = 25;
     var infoTableXOffset = 15;
     var attemptTableXOffset = 20;
+    var headerLineHeight = lineHeight - 4;
+    var compNamePadding = 4;
 
     var compnameWidth;
     var compnameHeight;
@@ -40,15 +42,21 @@ var scoresheetGenerator = function (compName="WCA Competition") {
      * @param {integer} round
      * @param {integer} attempts number of attempts of the event
      * @param {integer} group 
+     * @param {integer} cufoff
+     * @param {integer} timeLimit
+     * @param {integer} cumLimit
      */
-    this.addScoresheet = function (player, index, event, round, attempts, group = "") {
+    this.addScoresheet = function (player, index, event, round, attempts, group="",
+                                   cufoff=null, timeLimit=null) {
         var scoresheet = {
             Name: player,
             ID: index,
             Event: event,
             Round: 'Round ' + round,
             Group: 'Group ' + group,
-            group: parseInt(group)
+            group: parseInt(group),
+            cutoff: cufoff,
+            timeLimit: timeLimit,
         };
         switch (attempts) {
             case 5:
@@ -174,9 +182,14 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         this.attempsPlus = this.headerPlus + lineHeight;
         this.tableXStart = 50;
         this.numberXStart = 6;
-        this.vertPadding = 5 * (6 - numberOfAttempts);
+        this.vertPadding = 4 * (6 - numberOfAttempts);
         this.infoStart = 30;
         this.lineHeight = lineHeight;
+        this.headerLineHeight = headerLineHeight;
+        this.cutoffAttempts = 2;
+        if (numberOfAttempts <= 3) {
+            this.cutoffAttempts = 1;
+        }
     }
 
     var fiveAttemptsSettings = new AttemptsSettings(5, 2);
@@ -232,25 +245,54 @@ var scoresheetGenerator = function (compName="WCA Competition") {
 
             var scoresheet = generator[sc];
 
+            var showCutoff = (scoresheet.cutoff != null) || (scoresheet.timeLimit != null);
+            if (!showCutoff) {
+                settings.vertPadding = 4 * (6 - settings.number);
+            }
+
             // console.log(compnameWidth, compnameHeight);
 
             var xOffset = (A4PtSize.mid_width - compnameWidth*1.05) / 2 + sheetXStart;
-            var yOffset = (settings.infoStart) + y - (settings.infoStart -compnameHeight)/2 ;
+            var yOffset = (settings.infoStart) + y - (settings.infoStart - compnameHeight)/2 ;
+            
             doc.setTextColor(0); doc.setFontStyle('bold'); doc.setFontSize(fontSize);
             doc.text(compName, xOffset, yOffset);
 
-            y += 2;
-
+            y += compNamePadding;
+            var headerFontSize = 15;
+            
+            doc.setFontSize(headerFontSize);
             doc.autoTable(headerRow1, [scoresheet], infoOptions(doc, sheetXStart+infoTableXOffset, y, headerSpacing));
-            y += lineHeight;
+            y += headerLineHeight;
             // // console.log(sheetXStart, y);
+            doc.setFontSize(headerFontSize);
             doc.autoTable(headerRow2, [scoresheet], infoOptions(doc, sheetXStart+infoTableXOffset, y,  headerSpacing));
-            y += lineHeight * 2 + settings.vertPadding * 2;
+            y += headerLineHeight * 2 + settings.vertPadding * 2;
 
             // render attempts
             for (var a = 1; a <= settings.number; a++) {
-                generateAttempt(a, doc, sheetXStart, y, settings, attemptsOptions, headerSpacing)
+                generateAttempt(a, doc, sheetXStart, y, settings, attemptsOptions, headerSpacing);
                 y += lineHeight * 2 + settings.vertPadding;
+                if (showCutoff && (a == settings.cutoffAttempts)) {
+                    var cutOfftext = "";
+                    if (scoresheet.cutoff != null) {
+                        cutOfftext += 'Cutoff < ' + centisecondsToTimeStr(scoresheet.cutoff.attemptResult);
+                    }
+                    if (scoresheet.timeLimit != null) {
+                        var limitText = '    Time Limit < ';
+                        if (scoresheet.timeLimit.cumulativeRoundIds.length > 0) {
+                            limitText = '   Cumulative Time Limit < ';
+                        }
+                        if (settings.number == 5) {
+                            limitText = "      " + limitText;
+                        }
+                        cutOfftext += limitText + centisecondsToTimeStr(scoresheet.timeLimit.centiseconds);
+                    }
+                    var cutOffFontSize = 15 - settings.number;
+                    doc.setFontSize(cutOffFontSize); doc.setFontStyle('bold'); 
+                    doc.text(cutOfftext, sheetXStart+55, y + 5 -4+settings.number);
+                    y += cutOffFontSize ;
+                }
             }
             generateAttempt("P", doc, sheetXStart, y, settings, attemptsOptions, headerSpacing, true)
 
@@ -411,7 +453,7 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         // console.log("xStart, yStart", xStart, yStart)
         return {
             padding: padding,
-            lineHeight: lineHeight,
+            lineHeight: headerLineHeight,
             margins: {
                 left: leftMargin,
                 right: rightMargin,
@@ -430,7 +472,7 @@ var scoresheetGenerator = function (compName="WCA Competition") {
                 doc.setFontStyle('bold');
                 doc.setFontSize(14);
                 x += 1;
-                y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
+                y += headerLineHeight / 2 + doc.internal.getLineHeight() / 2 - 2.5;
                 // console.log("value", value);
                 var special_char_start = value.indexOf('(');
                 if (value.length > 30 && special_char_start > 0) {
@@ -640,4 +682,17 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         { title: 'Judge', key: 'js', width: 50 },
         { title: 'Player', key: 'ps', width: 50 }
     ];
+
+    function centisecondsToTimeStr(centiseconds) {
+        var seconds = centiseconds / 100;
+        var minutes = Math.floor(seconds / 60);
+        seconds = seconds % 60;
+   
+        // format to MM:SS.ss, no need to inlcude MM if it is 0
+        if (minutes == 0) {
+            return seconds.toFixed(2);
+        }
+        return minutes + ":" + (seconds < 10 ? "0" : "") + seconds
+    }
+    
 }
