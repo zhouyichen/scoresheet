@@ -337,6 +337,13 @@ $(function(){
                     wcifData.nonFirstRoundIds.push(round.id);
                 }
                 wcifData.roundToFormat[round.id] = round.format;
+                if (round.cutoff == null) {
+                    if (round.timeLimit != null) {
+                        if (round.timeLimit.centiseconds === 60000) {
+                            round.timeLimit = null;
+                        }
+                    }
+                }
                 wcifData.roundIdToCutoff[round.id] = {'cutoff': round.cutoff, 'timeLimit': round.timeLimit};
                 if (previousRound != null) {
                     round.results.forEach((r, idx) => {
