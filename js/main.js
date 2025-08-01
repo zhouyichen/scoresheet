@@ -244,9 +244,12 @@ $(function(){
                 var firstRoundsId = "fr_" + venueIdx + "_" + roomIdx;
                 var nonFirstRoundsId = "nfr_" + venueIdx + "_" + roomIdx;
                 var allRoundsId = "ar_" + venueIdx + "_" + roomIdx;
+                var allRoundsTableId = "art_" + venueIdx + "_" + roomIdx;
                 roomHTML += '<button type="button" class="btn btn-default" id=' + firstRoundsId + '">First Rounds Only</button>';
                 roomHTML += '<button type="button" class="btn btn-default" id=' + nonFirstRoundsId + '">Non-First Rounds Only</button>';
                 roomHTML += '<button type="button" class="btn btn-default" id=' + allRoundsId + '">All Rounds</button>';
+
+                roomHTML += '<button type="button" class="btn btn-default" id=' + allRoundsTableId + '">All Rounds Table</button>';
                 
                 room.firstRoundsActs = [];
                 room.nonFirstRoundsActs = [];
@@ -311,6 +314,10 @@ $(function(){
                 console.log("allRoundsId clicked");
                 fileName = roomName + '_All_Rounds';
                 generator.generatePDF(room.allCompetingActs, wcifData,  fileName);
+            } else if (type === 'art') {
+                console.log("allRoundsId Table clicked");
+                fileName = roomName + '_All_Rounds_table';
+                generator.generatePDF(room.allCompetingActs, wcifData,  fileName, tableFormat=true);
             }
         });
     }

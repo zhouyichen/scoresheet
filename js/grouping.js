@@ -2,6 +2,10 @@
  * The Generator object is to be passed into the generate pdf function.
  * It stores the scoresheet objects according to the number of attempts
  */
+
+const STAFF_JUDGE = "staff-judge";
+const STAFF_SCRAMBLER = "staff-scrambler";
+
 var groupingPrinter = function (compName="WCA Competition") {
     var A4PtSize = {
         height: 842,
@@ -28,7 +32,13 @@ var groupingPrinter = function (compName="WCA Competition") {
     var colWidth = (A4PtSize.width - initX * 2) / numCols;
     var pageStartY = 50;
     var groupIndent = 70;
-    var roleSpacing = nameFontSize + 3;
+    var roleSpacing = nameFontSize + 15;
+
+    var groupColumnsPerPage = 8;
+    var tableRowsPerPage = 30;
+    var totalRows = tableRowsPerPage + 2;
+    var tablePlayerNameWidth = (A4PtSize.width - initX * 2) / numCols;
+    var groupColWidth = (A4PtSize.width - initX * 2 - tablePlayerNameWidth) / groupColumnsPerPage;
 
     var images = [];
     var canva;
@@ -75,15 +85,23 @@ var groupingPrinter = function (compName="WCA Competition") {
         return nextY;
     }
 
-    this.generatePDF = function (acts, wcifData, fileName) {
+    this.generatePDF = function (acts, wcifData, fileName, tableFormat=false) {
         console.log(fileName);
         console.log(acts);
 
         var doc = new jsPDF('p', 'pt');
         doc.setTextColor(0); 
         doc.setFont('times', 'normal');
+
+        if (tableFormat) {
+            this.generateTableFormat(acts, wcifData, doc);
+            doc.save(fileName + '.pdf');
+            return
+        }
+
         var actStartY = pageStartY;
         var currentY = actStartY;
+
         for (var roundIdx in acts) {
             const currentRound = acts[roundIdx];
             var nextRound = null;
@@ -133,6 +151,112 @@ var groupingPrinter = function (compName="WCA Competition") {
         }
         doc.save(fileName + '.pdf');
     }   
+
+    this.generateTableFormat = function (acts, wcifData, doc) {
+        // get total number of groups, and all competitors with at least one role
+        lineHeight = 22;
+        var hPad = 2;
+        var vPad = 5;
+
+        var allVolunteers = {};
+        var maxNameLength = 0;
+        for (var person of wcifData.persons) {
+            if (person.wcaUserId && person.shortName) {
+                var isStaff = false;
+                for (var role of person.roles) {
+                    // if role contains 'staff',
+                    if (role.includes('staff')) {
+                        isStaff = true;
+                        break;
+                    }
+                }
+                if (isStaff) {
+                    person.actIdToAss = {};
+                    for (var ass of person.assignments) {
+                        person.actIdToAss[ass.activityId] = ass.assignmentCode;
+                    }
+                    allVolunteers[person.wcaUserId] = person;
+                }
+            }
+        }
+        // sort volunteers by shortName
+        var sortedVolunteers = Object.values(allVolunteers).sort(function (a, b) {
+            return a.shortName.localeCompare(b.shortName);
+        });
+        var startY = pageStartY-10;
+        var startX = initX;
+        var nextX;
+        var nextY;
+        var groupCount = 0;
+        for (var roundIdx in acts) {
+            const currentRound = acts[roundIdx];
+            var nextRound = null;
+            if (roundIdx < acts.length - 1) {
+                nextRound = acts[roundIdx + 1];
+            }
+            for (var group of currentRound.childActivities) {
+                startY = pageStartY - 10;
+                if (groupCount % groupColumnsPerPage == 0) {
+                    if (groupCount > 0) {
+                        doc.addPage();
+                        startX = initX;
+                    }
+                    // render the name column
+                    nextY = startY + 2 * lineHeight;
+                    // doc.rect(startX, startY, nextX, startY + lineHeight, 'S');
+                    doc.rect(startX, startY, tablePlayerNameWidth, lineHeight * 2, 'S');
+                    doc.text('Name', startX + hPad, nextY - vPad);
+                    for (var i = 0; i < totalRows; i++) {
+                        var currentY = startY + (i+2) * lineHeight;
+                        doc.rect(startX, currentY, tablePlayerNameWidth, lineHeight, 'S');
+                        // get the ith volunteer
+                        var volunteer = sortedVolunteers[i] || null;
+                        if (volunteer) {
+                            doc.setFontSize(nameFontSize);
+                            doc.text(volunteer.shortName, startX + hPad, currentY + lineHeight - vPad);
+                        }
+                    }
+                    startX = startX + tablePlayerNameWidth;
+                }
+                const actCode = group.activityCode;
+                // split act code by the first "-r"
+                var [eventId, groupId] = actCode.split(/-r(.+)/);
+                var groupId = 'R' + groupId.replace('g', 'G');
+
+                nextX = startX + groupColWidth;
+                nextY = startY + 2 * lineHeight;
+                doc.rect(startX, startY, groupColWidth, lineHeight*2, 'S');
+                doc.text(eventId, startX + hPad, startY + lineHeight - vPad);
+                doc.text(groupId, startX + hPad, startY + 2 * lineHeight - vPad);
+
+                for (var i = 0; i < totalRows; i++) {
+                    var currentY = startY + (i+2) * lineHeight;
+                    var rectStyle = 'S';
+                    
+                    // get the ith volunteer
+                    var volunteer = sortedVolunteers[i] || null;
+                    if (volunteer) {
+                        var assCode = volunteer.actIdToAss[group.id] || null;
+                        if (assCode === STAFF_JUDGE) {
+                            rectStyle = 'FD';
+                            doc.setFillColor(255, 191, 95); // light red
+                        }
+                        else if (assCode === STAFF_SCRAMBLER) {
+                            rectStyle = 'FD';
+                            doc.setFillColor(191, 255, 95); // light green
+                        } 
+                    }
+                    doc.rect(startX, currentY, groupColWidth, lineHeight, rectStyle);
+                }
+                startX = nextX;
+                groupCount += 1;
+
+            }
+        }
+        console.log("Total groups: " + groupCount);
+
+    }
+
 
     this.listPersons = function (currentY, persons, doc, prefix="") {
         doc.setFontStyle('normal'); 
