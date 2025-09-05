@@ -32,10 +32,10 @@ var groupingPrinter = function (compName="WCA Competition") {
     var colWidth = (A4PtSize.width - initX * 2) / numCols;
     var pageStartY = 50;
     var groupIndent = 70;
-    var roleSpacing = nameFontSize + 15;
+    var roleSpacing = nameFontSize + 12;
 
     var groupColumnsPerPage = 8;
-    var tableRowsPerPage = 30;
+    var tableRowsPerPage = 28;
     var totalRows = tableRowsPerPage + 2;
     var tablePlayerNameWidth = (A4PtSize.width - initX * 2) / numCols;
     var groupColWidth = (A4PtSize.width - initX * 2 - tablePlayerNameWidth) / groupColumnsPerPage;
@@ -183,74 +183,81 @@ var groupingPrinter = function (compName="WCA Competition") {
         var sortedVolunteers = Object.values(allVolunteers).sort(function (a, b) {
             return a.shortName.localeCompare(b.shortName);
         });
-        var startY = pageStartY-10;
-        var startX = initX;
-        var nextX;
-        var nextY;
-        var groupCount = 0;
-        for (var roundIdx in acts) {
-            const currentRound = acts[roundIdx];
-            var nextRound = null;
-            if (roundIdx < acts.length - 1) {
-                nextRound = acts[roundIdx + 1];
-            }
-            for (var group of currentRound.childActivities) {
-                startY = pageStartY - 10;
-                if (groupCount % groupColumnsPerPage == 0) {
-                    if (groupCount > 0) {
-                        doc.addPage();
-                        startX = initX;
+
+        var volunteer_start_idx = 0;
+        while (volunteer_start_idx < sortedVolunteers.length) {
+            var startY = pageStartY-10;
+            var startX = initX;
+            var nextX;
+            var nextY;
+            var groupCount = 0;
+            for (var roundIdx in acts) {
+                const currentRound = acts[roundIdx];
+                var nextRound = null;
+                if (roundIdx < acts.length - 1) {
+                    nextRound = acts[roundIdx + 1];
+                }
+                for (var group of currentRound.childActivities) {
+                    startY = pageStartY - 10;
+                    if (groupCount % groupColumnsPerPage == 0) {
+                        if (groupCount > 0) {
+                            doc.addPage();
+                            startX = initX;
+                        }
+                        // render the name column
+                        nextY = startY + 2 * lineHeight;
+                        // doc.rect(startX, startY, nextX, startY + lineHeight, 'S');
+                        doc.rect(startX, startY, tablePlayerNameWidth, lineHeight * 2, 'S');
+                        doc.text('Name', startX + hPad, nextY - vPad);
+                        for (var i = 0; i < totalRows; i++) {
+                            var currentY = startY + (i+2) * lineHeight;
+                            doc.rect(startX, currentY, tablePlayerNameWidth, lineHeight, 'S');
+                            // get the ith volunteer
+                            var volunteer = sortedVolunteers[i+volunteer_start_idx] || null;
+                            if (volunteer) {
+                                doc.setFontSize(nameFontSize);
+                                doc.text(volunteer.shortName, startX + hPad, currentY + lineHeight - vPad);
+                            }
+                        }
+                        startX = startX + tablePlayerNameWidth;
                     }
-                    // render the name column
+                    const actCode = group.activityCode;
+                    // split act code by the first "-r"
+                    var [eventId, groupId] = actCode.split(/-r(.+)/);
+                    var groupId = 'R' + groupId.replace('g', 'G');
+
+                    nextX = startX + groupColWidth;
                     nextY = startY + 2 * lineHeight;
-                    // doc.rect(startX, startY, nextX, startY + lineHeight, 'S');
-                    doc.rect(startX, startY, tablePlayerNameWidth, lineHeight * 2, 'S');
-                    doc.text('Name', startX + hPad, nextY - vPad);
+                    doc.rect(startX, startY, groupColWidth, lineHeight*2, 'S');
+                    doc.text(eventId, startX + hPad, startY + lineHeight - vPad);
+                    doc.text(groupId, startX + hPad, startY + 2 * lineHeight - vPad);
+
                     for (var i = 0; i < totalRows; i++) {
                         var currentY = startY + (i+2) * lineHeight;
-                        doc.rect(startX, currentY, tablePlayerNameWidth, lineHeight, 'S');
+                        var rectStyle = 'S';
+                        
                         // get the ith volunteer
-                        var volunteer = sortedVolunteers[i] || null;
+                        var volunteer = sortedVolunteers[i+volunteer_start_idx] || null;
                         if (volunteer) {
-                            doc.setFontSize(nameFontSize);
-                            doc.text(volunteer.shortName, startX + hPad, currentY + lineHeight - vPad);
+                            var assCode = volunteer.actIdToAss[group.id] || null;
+                            if (assCode === STAFF_JUDGE) {
+                                rectStyle = 'FD';
+                                doc.setFillColor(255, 191, 95); // light red
+                            }
+                            else if (assCode === STAFF_SCRAMBLER) {
+                                rectStyle = 'FD';
+                                doc.setFillColor(191, 255, 95); // light green
+                            } 
                         }
+                        doc.rect(startX, currentY, groupColWidth, lineHeight, rectStyle);
                     }
-                    startX = startX + tablePlayerNameWidth;
+                    startX = nextX;
+                    groupCount += 1;
                 }
-                const actCode = group.activityCode;
-                // split act code by the first "-r"
-                var [eventId, groupId] = actCode.split(/-r(.+)/);
-                var groupId = 'R' + groupId.replace('g', 'G');
-
-                nextX = startX + groupColWidth;
-                nextY = startY + 2 * lineHeight;
-                doc.rect(startX, startY, groupColWidth, lineHeight*2, 'S');
-                doc.text(eventId, startX + hPad, startY + lineHeight - vPad);
-                doc.text(groupId, startX + hPad, startY + 2 * lineHeight - vPad);
-
-                for (var i = 0; i < totalRows; i++) {
-                    var currentY = startY + (i+2) * lineHeight;
-                    var rectStyle = 'S';
-                    
-                    // get the ith volunteer
-                    var volunteer = sortedVolunteers[i] || null;
-                    if (volunteer) {
-                        var assCode = volunteer.actIdToAss[group.id] || null;
-                        if (assCode === STAFF_JUDGE) {
-                            rectStyle = 'FD';
-                            doc.setFillColor(255, 191, 95); // light red
-                        }
-                        else if (assCode === STAFF_SCRAMBLER) {
-                            rectStyle = 'FD';
-                            doc.setFillColor(191, 255, 95); // light green
-                        } 
-                    }
-                    doc.rect(startX, currentY, groupColWidth, lineHeight, rectStyle);
-                }
-                startX = nextX;
-                groupCount += 1;
-
+            }
+            volunteer_start_idx += totalRows;
+            if (volunteer_start_idx < sortedVolunteers.length) {
+                doc.addPage();
             }
         }
         console.log("Total groups: " + groupCount);
