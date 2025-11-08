@@ -238,18 +238,28 @@ $(function(){
             for (const roomIdx in venue.rooms) {
                 var room = venue.rooms[roomIdx];
                 var roomName = room.name;
-                var roomHTML = "<h3>" + roomName + "</h3>";
-                // var conciseRoomName = roomName.replace(/ /g, "_");
-                //show 3 buttons: 1. First rounds only 2. non-first rounds only 3. all rounds
+                var roomHTML = '<div class="grouping-room">';
+                roomHTML += "<h3>" + roomName + "</h3>";
                 var firstRoundsId = "fr_" + venueIdx + "_" + roomIdx;
                 var nonFirstRoundsId = "nfr_" + venueIdx + "_" + roomIdx;
                 var allRoundsId = "ar_" + venueIdx + "_" + roomIdx;
                 var allRoundsTableId = "art_" + venueIdx + "_" + roomIdx;
-                roomHTML += '<button type="button" class="btn btn-default" id=' + firstRoundsId + '">First Rounds Only</button>';
-                roomHTML += '<button type="button" class="btn btn-default" id=' + nonFirstRoundsId + '">Non-First Rounds Only</button>';
-                roomHTML += '<button type="button" class="btn btn-default" id=' + allRoundsId + '">All Rounds</button>';
+                var scramblersButtonId = "scr_" + venueIdx + "_" + roomIdx;
+                var scramblersInputId = "scrpg_" + venueIdx + "_" + roomIdx;
 
-                roomHTML += '<button type="button" class="btn btn-default" id=' + allRoundsTableId + '">All Rounds Table</button>';
+                roomHTML += '<div class="btn-group" role="group">';
+                roomHTML += '<button type="button" class="btn btn-default" id="' + firstRoundsId + '">First Rounds Only</button>';
+                roomHTML += '<button type="button" class="btn btn-default" id="' + nonFirstRoundsId + '">Non-First Rounds Only</button>';
+                roomHTML += '<button type="button" class="btn btn-default" id="' + allRoundsId + '">All Rounds</button>';
+                roomHTML += '<button type="button" class="btn btn-default" id="' + allRoundsTableId + '">All Rounds Table</button>';
+                roomHTML += '</div>';
+
+                roomHTML += '<div class="form-inline grouping-scramblers-controls">';
+                roomHTML += '<label for="' + scramblersInputId + '" style="margin-right:8px;">Scramblers per group</label>';
+                roomHTML += '<input type="number" class="form-control input-sm" min="1" value="3" id="' + scramblersInputId + '" style="width:80px;margin-right:8px;">';
+                roomHTML += '<button type="button" class="btn btn-default" id="' + scramblersButtonId + '">Scramblers Only</button>';
+                roomHTML += '</div>';
+                roomHTML += '</div>';
                 
                 room.firstRoundsActs = [];
                 room.nonFirstRoundsActs = [];
@@ -318,6 +328,15 @@ $(function(){
                 console.log("allRoundsId Table clicked");
                 fileName = roomName + '_All_Rounds_table';
                 generator.generatePDF(room.allCompetingActs, wcifData,  fileName, tableFormat=true);
+            } else if (type === 'scr') {
+                console.log('scramblers only clicked');
+                fileName = roomName + '_Scramblers';
+                var inputSelector = '#scrpg_' + venueIdx + '_' + roomIdx;
+                var userInput = parseInt($(inputSelector).val(), 10);
+                if (!Number.isFinite(userInput) || userInput < 1) {
+                    userInput = 3;
+                }
+                generator.generateScramblerPDF(room.allCompetingActs, wcifData, fileName, userInput);
             }
         });
     }

@@ -32,10 +32,10 @@ var groupingPrinter = function (compName="WCA Competition") {
     var colWidth = (A4PtSize.width - initX * 2) / numCols;
     var pageStartY = 50;
     var groupIndent = 70;
-    var roleSpacing = nameFontSize + 12;
+    var roleSpacing = nameFontSize + 4;
 
     var groupColumnsPerPage = 8;
-    var tableRowsPerPage = 28;
+    var tableRowsPerPage = 31;
     var totalRows = tableRowsPerPage + 2;
     var tablePlayerNameWidth = (A4PtSize.width - initX * 2) / numCols;
     var groupColWidth = (A4PtSize.width - initX * 2 - tablePlayerNameWidth) / groupColumnsPerPage;
@@ -44,6 +44,25 @@ var groupingPrinter = function (compName="WCA Competition") {
     var canva;
     var ctx;
     var scale = 11;
+
+    var pad2 = function (num) {
+        return (num < 10 ? '0' : '') + num;
+    };
+
+    var getDateKey = function (timestamp) {
+        if (!timestamp) {
+            return '';
+        }
+        // The timestamp from WCIF is a UTC string (e.g., "2025-11-16T02:35:00Z").
+        // new Date() parses this into a Date object.
+        var date = new Date(timestamp);
+        // Calling getFullYear(), getMonth(), getDate() on the Date object returns
+        // the date components in the browser's local time zone.
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+        return date.getFullYear() + '-' + pad2(date.getMonth() + 1) + '-' + pad2(date.getDate());
+    };
 
 
     this.formatName = function (name) {
@@ -96,57 +115,81 @@ var groupingPrinter = function (compName="WCA Competition") {
         if (tableFormat) {
             this.generateTableFormat(acts, wcifData, doc);
             doc.save(fileName + '.pdf');
-            return
+            return;
         }
 
-        var actStartY = pageStartY;
-        var currentY = actStartY;
+        var sortedActs = Array.isArray(acts) ? acts.slice() : [];
+        sortedActs.sort(function (a, b) {
+            var aTime = Date.parse(a && a.startTime);
+            var bTime = Date.parse(b && b.startTime);
+            if (!Number.isFinite(aTime)) { aTime = 0; }
+            if (!Number.isFinite(bTime)) { bTime = 0; }
+            return aTime - bTime;
+        });
 
-        for (var roundIdx in acts) {
-            const currentRound = acts[roundIdx];
-            var nextRound = null;
-            if (roundIdx < acts.length - 1) {
-                nextRound = acts[roundIdx + 1];
+        var currentY = pageStartY;
+        var previousDateKey = null;
+
+        for (var idx = 0; idx < sortedActs.length; idx++) {
+            var currentRound = sortedActs[idx];
+            if (!currentRound) {
+                continue;
             }
-            for (var group of currentRound.childActivities) {
-                const groupName = group.name;
-                const groupTime = this.formatGroupTime(group);
-                const actCode = group.activityCode;
-                const competitors =  wcifData.actCodeToCompetitors[actCode];
-                const judges = wcifData.actCodeToJudges[actCode];
-                const scramblers = wcifData.actCodeToScramblers[actCode];
-                console.log(groupName, groupTime);
-                console.log({competitors, judges, scramblers});
+            var roundDateKey = getDateKey(currentRound.startTime);
+            if (previousDateKey !== null && roundDateKey !== previousDateKey) {
+                doc.addPage();
+                currentY = pageStartY;
+            }
+            previousDateKey = roundDateKey;
 
-                // print group name and group time
-                doc.setFontStyle('bold'); doc.setFontSize(groupFontSize);
+            var roundGroups = (Array.isArray(currentRound.childActivities) && currentRound.childActivities.length > 0)
+                ? currentRound.childActivities
+                : [currentRound];
+
+            for (var groupIdx = 0; groupIdx < roundGroups.length; groupIdx++) {
+                var group = roundGroups[groupIdx];
+                if (!group) {
+                    continue;
+                }
+                var groupName = group.name || currentRound.name || '';
+                var groupTime = this.formatGroupTime(group);
+                var actCode = group.activityCode;
+                var competitors = (wcifData.actCodeToCompetitors && wcifData.actCodeToCompetitors[actCode]) || [];
+                var judges = (wcifData.actCodeToJudges && wcifData.actCodeToJudges[actCode]) || [];
+                var scramblers = (wcifData.actCodeToScramblers && wcifData.actCodeToScramblers[actCode]) || [];
+
+                doc.setFontStyle('bold');
+                doc.setFontSize(groupFontSize);
                 currentY = this.setNextY(currentY + 5, scramblers.slice(0, 3), doc);
-                doc.text(groupName + groupTime, initX+groupIndent, currentY);
+                doc.text((groupName || actCode) + groupTime, initX + groupIndent, currentY);
                 currentY += groupFontSize;
 
                 currentY = this.setNextY(currentY, scramblers, doc);
-                doc.setFontStyle('bold'); doc.setFontSize(roleFontSize);
+                doc.setFontStyle('bold');
+                doc.setFontSize(roleFontSize);
                 doc.text("Scramblers (" + scramblers.length + ")", initX, currentY);
                 currentY += groupFontSize + 1;
-                currentY = this.listPersons(currentY, scramblers, doc, prefix="[ ] ");
+                currentY = this.listPersons(currentY, scramblers, doc, "[ ] ");
                 currentY += roleSpacing;
 
                 currentY = this.setNextY(currentY, judges, doc);
-                doc.setFontStyle('bold'); doc.setFontSize(roleFontSize);
+                doc.setFontStyle('bold');
+                doc.setFontSize(roleFontSize);
                 doc.text("Judges (" + judges.length + ")", initX, currentY);
                 currentY += groupFontSize + 1;
-                currentY = this.listPersons(currentY, judges, doc, prefix="[ ] ");
+                currentY = this.listPersons(currentY, judges, doc, "[ ] ");
                 currentY += roleSpacing;
 
                 if (competitors.length > 0) {
                     currentY = this.setNextY(currentY, competitors, doc);
-                    doc.setFontStyle('bold'); doc.setFontSize(roleFontSize);
+                    doc.setFontStyle('bold');
+                    doc.setFontSize(roleFontSize);
                     doc.text("Competitors (" + competitors.length + ")", initX, currentY);
                     currentY += groupFontSize + 1;
                     currentY = this.listPersons(currentY, competitors, doc);
                 }
 
-                currentY += 5; 
+                currentY += 5;
             }
         }
         doc.save(fileName + '.pdf');
@@ -159,12 +202,10 @@ var groupingPrinter = function (compName="WCA Competition") {
         var vPad = 5;
 
         var allVolunteers = {};
-        var maxNameLength = 0;
         for (var person of wcifData.persons) {
             if (person.wcaUserId && person.shortName) {
                 var isStaff = false;
                 for (var role of person.roles) {
-                    // if role contains 'staff',
                     if (role.includes('staff')) {
                         isStaff = true;
                         break;
@@ -179,89 +220,336 @@ var groupingPrinter = function (compName="WCA Competition") {
                 }
             }
         }
-        // sort volunteers by shortName
         var sortedVolunteers = Object.values(allVolunteers).sort(function (a, b) {
             return a.shortName.localeCompare(b.shortName);
         });
 
+        var sortedActs = Array.isArray(acts) ? acts.slice() : [];
+        sortedActs.sort(function (a, b) {
+            var aTime = Date.parse(a && a.startTime);
+            var bTime = Date.parse(b && b.startTime);
+            if (!Number.isFinite(aTime)) { aTime = 0; }
+            if (!Number.isFinite(bTime)) { bTime = 0; }
+            return aTime - bTime;
+        });
+
         var volunteer_start_idx = 0;
+        var totalGroups = 0;
+
         while (volunteer_start_idx < sortedVolunteers.length) {
-            var startY = pageStartY-10;
-            var startX = initX;
-            var nextX;
-            var nextY;
-            var groupCount = 0;
-            for (var roundIdx in acts) {
-                const currentRound = acts[roundIdx];
-                var nextRound = null;
-                if (roundIdx < acts.length - 1) {
-                    nextRound = acts[roundIdx + 1];
-                }
-                for (var group of currentRound.childActivities) {
-                    startY = pageStartY - 10;
-                    if (groupCount % groupColumnsPerPage == 0) {
-                        if (groupCount > 0) {
-                            doc.addPage();
-                            startX = initX;
-                        }
-                        // render the name column
-                        nextY = startY + 2 * lineHeight;
-                        // doc.rect(startX, startY, nextX, startY + lineHeight, 'S');
-                        doc.rect(startX, startY, tablePlayerNameWidth, lineHeight * 2, 'S');
-                        doc.text('Name', startX + hPad, nextY - vPad);
-                        for (var i = 0; i < totalRows; i++) {
-                            var currentY = startY + (i+2) * lineHeight;
-                            doc.rect(startX, currentY, tablePlayerNameWidth, lineHeight, 'S');
-                            // get the ith volunteer
-                            var volunteer = sortedVolunteers[i+volunteer_start_idx] || null;
-                            if (volunteer) {
-                                doc.setFontSize(nameFontSize);
-                                doc.text(volunteer.shortName, startX + hPad, currentY + lineHeight - vPad);
-                            }
-                        }
-                        startX = startX + tablePlayerNameWidth;
+            var pageColumnIndex = 0;
+            var previousDateKey = null;
+            var columnBaseX = initX + tablePlayerNameWidth;
+
+            var renderNameColumn = function () {
+                var nameStartX = initX;
+                var nameStartY = pageStartY - 10;
+                var headerBottomY = nameStartY + 2 * lineHeight;
+                doc.setFontStyle('normal');
+                doc.rect(nameStartX, nameStartY, tablePlayerNameWidth, lineHeight * 2, 'S');
+                doc.setFontSize(nameFontSize);
+                doc.text('Name', nameStartX + hPad, headerBottomY - vPad);
+                for (var i = 0; i < totalRows; i++) {
+                    var rowY = nameStartY + (i + 2) * lineHeight;
+                    doc.rect(nameStartX, rowY, tablePlayerNameWidth, lineHeight, 'S');
+                    var volunteer = sortedVolunteers[i + volunteer_start_idx] || null;
+                    if (volunteer) {
+                        doc.text(volunteer.shortName, nameStartX + hPad, rowY + lineHeight - vPad);
                     }
-                    const actCode = group.activityCode;
-                    // split act code by the first "-r"
-                    var [eventId, groupId] = actCode.split(/-r(.+)/);
-                    var groupId = 'R' + groupId.replace('g', 'G');
+                }
+                pageColumnIndex = 0;
+            };
 
-                    nextX = startX + groupColWidth;
-                    nextY = startY + 2 * lineHeight;
-                    doc.rect(startX, startY, groupColWidth, lineHeight*2, 'S');
-                    doc.text(eventId, startX + hPad, startY + lineHeight - vPad);
-                    doc.text(groupId, startX + hPad, startY + 2 * lineHeight - vPad);
+            renderNameColumn();
 
-                    for (var i = 0; i < totalRows; i++) {
-                        var currentY = startY + (i+2) * lineHeight;
+            for (var roundIdx = 0; roundIdx < sortedActs.length; roundIdx++) {
+                var currentRound = sortedActs[roundIdx];
+                if (!currentRound) {
+                    continue;
+                }
+                var currentDateKey = getDateKey(currentRound.startTime);
+                if (totalGroups > 0 && previousDateKey !== null && currentDateKey !== previousDateKey) {
+                    doc.addPage();
+                    renderNameColumn();
+                }
+                previousDateKey = currentDateKey;
+
+                var roundGroups = (Array.isArray(currentRound.childActivities) && currentRound.childActivities.length > 0)
+                    ? currentRound.childActivities
+                    : [currentRound];
+
+                for (var groupIdx = 0; groupIdx < roundGroups.length; groupIdx++) {
+                    var group = roundGroups[groupIdx];
+                    if (!group) {
+                        continue;
+                    }
+
+                    if (pageColumnIndex === groupColumnsPerPage) {
+                        doc.addPage();
+                        renderNameColumn();
+                    }
+
+                    var columnX = columnBaseX + (pageColumnIndex * groupColWidth);
+                    var columnY = pageStartY - 10;
+
+                    doc.rect(columnX, columnY, groupColWidth, lineHeight * 2, 'S');
+
+                    var actCode = group.activityCode || '';
+                    var eventId = actCode;
+                    var groupIdText = '';
+                    if (typeof actCode === 'string') {
+                        var split = actCode.split(/-r(.+)/);
+                        if (split.length > 1) {
+                            eventId = split[0];
+                            groupIdText = split[1] ? 'R' + split[1].replace('g', 'G') : '';
+                        }
+                    }
+
+                    doc.setFontSize(nameFontSize);
+                    doc.text(eventId, columnX + hPad, columnY + lineHeight - vPad);
+                    if (groupIdText) {
+                        doc.text(groupIdText, columnX + hPad, columnY + 2 * lineHeight - vPad);
+                    }
+
+                    for (var rowIdx = 0; rowIdx < totalRows; rowIdx++) {
+                        var cellY = columnY + (rowIdx + 2) * lineHeight;
                         var rectStyle = 'S';
-                        
-                        // get the ith volunteer
-                        var volunteer = sortedVolunteers[i+volunteer_start_idx] || null;
+                        var volunteer = sortedVolunteers[rowIdx + volunteer_start_idx] || null;
                         if (volunteer) {
                             var assCode = volunteer.actIdToAss[group.id] || null;
                             if (assCode === STAFF_JUDGE) {
                                 rectStyle = 'FD';
-                                doc.setFillColor(255, 191, 95); // light red
-                            }
-                            else if (assCode === STAFF_SCRAMBLER) {
+                                doc.setFillColor(255, 191, 95);
+                            } else if (assCode === STAFF_SCRAMBLER) {
                                 rectStyle = 'FD';
-                                doc.setFillColor(191, 255, 95); // light green
-                            } 
+                                doc.setFillColor(191, 255, 95);
+                            }
                         }
-                        doc.rect(startX, currentY, groupColWidth, lineHeight, rectStyle);
+                        doc.rect(columnX, cellY, groupColWidth, lineHeight, rectStyle);
                     }
-                    startX = nextX;
-                    groupCount += 1;
+
+                    pageColumnIndex += 1;
+                    totalGroups += 1;
                 }
             }
+
             volunteer_start_idx += totalRows;
             if (volunteer_start_idx < sortedVolunteers.length) {
                 doc.addPage();
             }
         }
-        console.log("Total groups: " + groupCount);
+        console.log("Total groups: " + totalGroups);
 
+    }
+
+
+    // Render a scrambler-only table with configurable number of columns per group
+    this.generateScramblerPDF = function (acts, wcifData, fileName, scramblersPerGroup=3, options={}) {
+        var doc = new jsPDF('p', 'pt');
+        doc.setTextColor(0);
+        doc.setFont('times', 'normal');
+
+        if (!Array.isArray(acts)) {
+            acts = [];
+        }
+
+        var groupColumnWidth = options.groupColumnWidth || 75;
+        var leftMargin = initX;
+        var topMargin = pageStartY;
+        var bottomMargin = 40;
+        var tableWidth = A4PtSize.width - leftMargin * 2;
+        var maxGroupsPerPage = 17;
+        var minGroupsPerPage = 15;
+        var scrNameFontSize = nameFontSize;
+
+        if (!Number.isFinite(scramblersPerGroup) || scramblersPerGroup < 1) {
+            scramblersPerGroup = 3;
+        } else {
+            scramblersPerGroup = Math.floor(scramblersPerGroup);
+        }
+
+        scrNameFontSize = scrNameFontSize / (scramblersPerGroup + 1) * 4;
+
+        if (groupColumnWidth >= tableWidth) {
+            groupColumnWidth = tableWidth * 0.25;
+        }
+
+        var availableForScramblers = tableWidth - groupColumnWidth;
+        var maxScramblers = Math.max(1, Math.floor(availableForScramblers / 60) - 1);
+        if (scramblersPerGroup > maxScramblers) {
+            scramblersPerGroup = maxScramblers;
+        }
+
+        var totalColumns = scramblersPerGroup + 2; // group column + scrambler columns + trailing empty column
+        var remainingWidth = tableWidth - groupColumnWidth;
+        var otherColumnWidth = remainingWidth / (totalColumns - 1);
+
+        var scramblerLookup = wcifData && wcifData.actCodeToScramblers ? wcifData.actCodeToScramblers : {};
+
+        var columnPositions = [];
+        var currentX = leftMargin;
+        columnPositions.push({x: currentX, width: groupColumnWidth});
+        currentX += groupColumnWidth;
+        for (var colIdx = 1; colIdx < totalColumns; colIdx++) {
+            columnPositions.push({x: currentX, width: otherColumnWidth});
+            currentX += otherColumnWidth;
+        }
+
+        var collectedGroups = [];
+        for (var actIdx = 0; actIdx < acts.length; actIdx++) {
+            var act = acts[actIdx];
+            if (!act) {
+                continue;
+            }
+            var actName = act.name || '';
+            var actDateKey = getDateKey(act.startTime);
+            var children = act.childActivities || [];
+            if (children.length === 0) {
+                var activityCode = act.activityCode;
+                var scrList = scramblerLookup[activityCode] || [];
+                var sortedScramblers = scrList.slice().sort(function (a, b) {
+                    // return a.shortName.localeCompare(b.shortName);
+                    return a.shortName.length - b.shortName.length;
+                });
+                var actLabel = activityCode.replace('-', ' ').toUpperCase();
+                var actStart = act.startTime ? Date.parse(act.startTime) : 0;
+                if (!Number.isFinite(actStart)) {
+                    actStart = 0;
+                }
+                collectedGroups.push({
+                    label: actLabel,
+                    scramblers: sortedScramblers,
+                    start: actStart,
+                    dateKey: actDateKey
+                });
+            } else {
+                for (var childIdx = 0; childIdx < children.length; childIdx++) {
+                    var group = children[childIdx];
+                    if (!group) {
+                        continue;
+                    }
+                    var groupCode = group.activityCode;
+                    var groupScr = scramblerLookup[groupCode] || [];
+                    var sortedGroupScramblers = groupScr.slice().sort(function (a, b) {
+                        // return a.shortName.localeCompare(b.shortName);
+                        return a.shortName.length - b.shortName.length;
+                    });
+                    var eventCode = groupCode.split('-')[0];
+                    var groupCode = groupCode.split('-')[1] + ' ' + groupCode.split('-')[2];
+                    var displayLabel = eventCode + ' ' + groupCode.toUpperCase();
+                    if (!displayLabel) {
+                        displayLabel = groupCode;
+                    }
+                    var groupStart = group.startTime ? Date.parse(group.startTime) : 0;
+                    if (!Number.isFinite(groupStart)) {
+                        groupStart = 0;
+                    }
+                    collectedGroups.push({
+                        label: displayLabel,
+                        scramblers: sortedGroupScramblers,
+                        start: groupStart,
+                        dateKey: actDateKey
+                    });
+                }
+            }
+        }
+
+        collectedGroups.sort(function (a, b) {
+            if (a.dateKey === b.dateKey) {
+                if (a.start === b.start) {
+                    return a.label.localeCompare(b.label);
+                }
+                return a.start - b.start;
+            }
+            return a.dateKey.localeCompare(b.dateKey);
+        });
+
+        var availableHeight = A4PtSize.height - topMargin - bottomMargin;
+
+        if (collectedGroups.length === 0) {
+            var fallbackRows = minGroupsPerPage * 2;
+            var fallbackRowHeight = availableHeight / fallbackRows;
+            for (var fallbackRow = 0; fallbackRow < minGroupsPerPage; fallbackRow++) {
+                var fallbackContentY = topMargin + fallbackRow * 2 * fallbackRowHeight;
+                var fallbackSpacerY = fallbackContentY + fallbackRowHeight;
+                for (var fallbackColumnIdx = 0; fallbackColumnIdx < totalColumns; fallbackColumnIdx++) {
+                    var fallbackPosition = columnPositions[fallbackColumnIdx];
+                    doc.rect(fallbackPosition.x, fallbackContentY, fallbackPosition.width, fallbackRowHeight, 'S');
+                    doc.rect(fallbackPosition.x, fallbackSpacerY, fallbackPosition.width, fallbackRowHeight, 'S');
+                }
+            }
+            doc.save(fileName + '.pdf');
+            return;
+        }
+
+        // Calculate consistent slot count for all pages
+        var totalGroupCount = collectedGroups.length;
+        var slotsPerPage = minGroupsPerPage;
+        for (var testSlots = minGroupsPerPage; testSlots <= maxGroupsPerPage; testSlots++) {
+            var pagesNeeded = Math.ceil(totalGroupCount / testSlots);
+            var totalSlotsNeeded = pagesNeeded * testSlots;
+            var wastedSlots = totalSlotsNeeded - totalGroupCount;
+            if (wastedSlots < testSlots / 2) {
+                slotsPerPage = testSlots;
+                break;
+            }
+        }
+
+        var groupIndex = 0;
+        while (groupIndex < collectedGroups.length) {
+            // Fix: enforce date boundary per page. Collect groups for one date, limited by slotsPerPage.
+            var currentDateKey = collectedGroups[groupIndex].dateKey;
+            var pageGroups = [];
+            while (
+                groupIndex < collectedGroups.length &&
+                pageGroups.length < slotsPerPage &&
+                collectedGroups[groupIndex].dateKey === currentDateKey
+            ) {
+                pageGroups.push(collectedGroups[groupIndex]);
+                groupIndex += 1;
+            }
+
+            var rowsThisPage = slotsPerPage * 2;
+            var rowHeight = availableHeight / rowsThisPage;
+            var rowPadding = Math.min(6, rowHeight / 4);
+            var startY = topMargin;
+
+            for (var pageRow = 0; pageRow < slotsPerPage; pageRow++) {
+                var actualGroup = pageRow < pageGroups.length ? pageGroups[pageRow] : null;
+                var contentRowY = startY + pageRow * 2 * rowHeight;
+                var spacerRowY = contentRowY + rowHeight;
+
+                for (var columnIdx = 0; columnIdx < totalColumns; columnIdx++) {
+                    var position = columnPositions[columnIdx];
+                    doc.rect(position.x, contentRowY, position.width, rowHeight, 'S');
+                    doc.rect(position.x, spacerRowY, position.width, rowHeight, 'S');
+                }
+
+                if (actualGroup) {
+                    doc.setFontStyle('bold');
+                    doc.setFontSize(nameFontSize + 1);
+                    var labelY = contentRowY + rowHeight - rowPadding;
+                    doc.text(actualGroup.label, columnPositions[0].x + 4, labelY);
+                    doc.setFontStyle('normal');
+                    doc.setFontSize(scrNameFontSize);
+                    for (var scrIdx = 0; scrIdx < scramblersPerGroup; scrIdx++) {
+                        var scrambler = actualGroup.scramblers[scrIdx] || null;
+                        if (scrambler) {
+                            var textX = columnPositions[scrIdx + 1].x + 4;
+                            var textY = contentRowY + rowHeight - rowPadding;
+                            doc.text(scrambler.shortName, textX, textY);
+                        }
+                    }
+                }
+            }
+
+            // New page if more groups remain (next may be same date needing another page, or next date)
+            if (groupIndex < collectedGroups.length) {
+                doc.addPage();
+            }
+        }
+
+        doc.save(fileName + '.pdf');
     }
 
 
