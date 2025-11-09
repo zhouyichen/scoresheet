@@ -260,6 +260,16 @@ var groupingPrinter = function (compName="WCA Competition") {
                 pageColumnIndex = 0;
             };
 
+            var renderEmptyGroupColumn = function (columnIndex) {
+                var columnX = columnBaseX + (columnIndex * groupColWidth);
+                var columnY = pageStartY - 10;
+                doc.rect(columnX, columnY, groupColWidth, lineHeight * 2, 'S');
+                for (var rowIdx = 0; rowIdx < totalRows; rowIdx++) {
+                    var cellY = columnY + (rowIdx + 2) * lineHeight;
+                    doc.rect(columnX, cellY, groupColWidth, lineHeight, 'S');
+                }
+            };
+
             renderNameColumn();
 
             for (var roundIdx = 0; roundIdx < sortedActs.length; roundIdx++) {
@@ -269,6 +279,11 @@ var groupingPrinter = function (compName="WCA Competition") {
                 }
                 var currentDateKey = getDateKey(currentRound.startTime);
                 if (totalGroups > 0 && previousDateKey !== null && currentDateKey !== previousDateKey) {
+                    // Fill remaining columns with empty cells before changing page
+                    while (pageColumnIndex < groupColumnsPerPage) {
+                        renderEmptyGroupColumn(pageColumnIndex);
+                        pageColumnIndex += 1;
+                    }
                     doc.addPage();
                     renderNameColumn();
                 }
@@ -333,6 +348,12 @@ var groupingPrinter = function (compName="WCA Competition") {
                 }
             }
 
+            // Fill remaining columns with empty cells at the end of all groups
+            while (pageColumnIndex < groupColumnsPerPage) {
+                renderEmptyGroupColumn(pageColumnIndex);
+                pageColumnIndex += 1;
+            }
+
             volunteer_start_idx += totalRows;
             if (volunteer_start_idx < sortedVolunteers.length) {
                 doc.addPage();
@@ -359,7 +380,7 @@ var groupingPrinter = function (compName="WCA Competition") {
         var bottomMargin = 40;
         var tableWidth = A4PtSize.width - leftMargin * 2;
         var maxGroupsPerPage = 17;
-        var minGroupsPerPage = 15;
+        var minGroupsPerPage = 14;
         var scrNameFontSize = nameFontSize;
 
         if (!Number.isFinite(scramblersPerGroup) || scramblersPerGroup < 1) {
