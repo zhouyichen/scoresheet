@@ -365,7 +365,9 @@ $(function(){
                 wcifData.roundToFormat[round.id] = round.format;
                 if (round.cutoff == null) {
                     if (round.timeLimit != null) {
-                        if (round.timeLimit.centiseconds === 60000) {
+                        if (round.timeLimit.centiseconds === 60000 && // if time limit is 10mins
+                            round.timeLimit.cumulativeRoundIds.length === 0 // and not cumulative
+                        ) {
                             round.timeLimit = null;
                         }
                     }
