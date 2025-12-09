@@ -11,6 +11,10 @@ var formats = {
         name: "Best of 3",
         attempts: 3
     },
+    5: {
+        name: "Best of 5",
+        attempts: 5
+    },
     a: {
         name: "Average of 5",
         attempts: 5
