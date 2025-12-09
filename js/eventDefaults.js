@@ -61,9 +61,9 @@ var eventDefaults = {
         maxAttempts: 3
     },
     '3×3 Blindfolded' : {
-        attempts : 3,
+        attempts : 5,
         number : 5,
-        maxAttempts: 3
+        maxAttempts: 5
     },
     '4×4 Blindfolded' : {
         attempts : 3,
