@@ -48,7 +48,7 @@ $(function(){
 
 
     function downloadRegCSV(wcifData) {
-        var string = 'data:text/csv;charset=utf-8, ID,Name,Email';
+        var string = 'data:text/csv;charset=utf-8, ID,Name,Country,WCA ID,Email';
         var event_to_idx = {};
         wcifData.events.forEach(function (event, index) {
             var eventID = event.id;
@@ -58,7 +58,7 @@ $(function(){
         string += '\n';
         for (const person of wcifData.persons) {
             if (person.registration != null && person.registration.status == "accepted") {
-                var person_str = person.registrantId + ',' + person.name + ',' + person.email;
+                var person_str = person.registrantId + ',' + person.name + ',' + person.countryIso2 + ',' + person.wcaId + ',' + person.email;
                 var eventFlags = Array(event_to_idx.length).fill(0);
                 for (const event of person.registration.eventIds) {
                     eventFlags[event_to_idx[event]] = 1;
