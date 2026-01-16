@@ -1,4 +1,3 @@
-
 function urlParam(name) {
     var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
     return results[1] || 0;
@@ -538,14 +537,29 @@ $(function(){
         } else {
             var attempts = parseInt(attemptsString);
         }
-        var number = parseInt($('#copies').val());
-        if (!number) {
+
+        var copiesInput = ($('#copies').val() || '').trim();
+        var groupCounts = null;
+        if (copiesInput.includes(',')) {
+            groupCounts = copiesInput
+                .split(',')
+                .map(s => parseInt(s.trim(), 10))
+                .filter(n => Number.isFinite(n) && n > 0);
+            if (groupCounts.length === 0) {
+                groupCounts = null;
+            }
+        }
+
+        var number = parseInt(copiesInput, 10);
+        if (!number || groupCounts) {
             number = eventDefaults[eventName].number;
         }
-        var numGroups = parseInt($('#groups').val());
-        if (!numGroups) {
+
+        var numGroups = parseInt($('#groups').val(), 10);
+        if (!numGroups || groupCounts) {
             numGroups = 0;
         }
+
         var fillRank = $('#fillRank').is(':checked');
         var competitionName = $('#compName').val();
         if (!competitionName) {
@@ -554,8 +568,31 @@ $(function(){
             }
             competitionName = 'WCA Competition';
         }
+
+        if (groupCounts) {
+            var generator = new scoresheetGenerator(competitionName);
+            var currentRank = 1;
+            groupCounts.forEach(function (count, idx) {
+                var groupId = idx + 1;
+                for (var i = 0; i < count; i++) {
+                    var name = "";
+                    if (fillRank) {
+                        name = "(" + (currentRank++) + ")";
+                    }
+                    if (eventName != '3×3 Multi-BF') {
+                        generator.addScoresheet(name, '', eventName, round, attempts, group=groupId);
+                    } else {
+                        generator.addMBFScoresheet(name, '', round, attempts);
+                    }
+                }
+            });
+            generator.generatePDF(competitionName + ' ' + eventName + ' Round ' + round);
+            return;
+        }
+
         generateEmpty(eventName, round, attempts, number, competitionName, numGroups=numGroups, fillRank=fillRank);
     }
+
 
     function generateEmpty(eventName, round, attempts, number, competitionName, numGroups=0, fillRank=false) {
         var generator = new scoresheetGenerator(competitionName);
