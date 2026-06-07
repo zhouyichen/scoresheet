@@ -101,7 +101,7 @@ $(function(){
             const compName = $('#competitions option:selected').text();
             $('#compTitle').html("Generate Scoresheets for " + compName);
             $.ajax({
-                url: "https://www.worldcubeassociation.org/api/v0/competitions/" + compId + "/wcif",
+                url: "https://www.worldcubeassociation.org/api/v0/competitions/" + compId + "/wcif/version/2",
                 type: "GET",
                 headers: { 'Authorization': 'Bearer ' + wca_token, 'Content-Type': 'application/json' },
                 success: function (data, status) {
@@ -123,6 +123,122 @@ $(function(){
         results.sort((a, b) => b['preRanking'] - a['preRanking']);
     }
 
+    function getRoundInfo(roundId) {
+        const actArray = roundId.split("-");
+        return {
+            event: actArray[0],
+            round: actArray[1].slice(1)
+        };
+    }
+
+    function getActivityInfo(activityCode) {
+        const actArray = activityCode.split("-");
+        return {
+            event: actArray[0],
+            round: actArray[1].slice(1),
+            group: actArray.length > 2 && actArray[2].startsWith("g") ? actArray[2].slice(1) : ""
+        };
+    }
+
+    function getFormatAttempts(format) {
+        if (!formats[format]) {
+            console.warn("Unknown WCIF round format: " + format);
+            return 5;
+        }
+        return formats[format].attempts;
+    }
+
+    function isRegistrationSourceRound(round, idx) {
+        const participationRuleset = round.participationRuleset;
+        const participationSource = participationRuleset && participationRuleset.participationSource;
+        return idx === 0 || (participationSource && participationSource.type === "registrations");
+    }
+
+    function getFirstRoundEquivalentIds(event) {
+        const firstRoundIds = new Set();
+        event.rounds.forEach((round, idx) => {
+            if (isRegistrationSourceRound(round, idx)) {
+                firstRoundIds.add(round.id);
+                if (Array.isArray(round.linkedRounds)) {
+                    round.linkedRounds.forEach(roundId => firstRoundIds.add(roundId));
+                }
+            }
+        });
+        return event.rounds
+            .map(round => round.id)
+            .filter(roundId => firstRoundIds.has(roundId));
+    }
+
+    function normalizeCutoffAndTimeLimit(round) {
+        if (round.cutoff != null && round.cutoff.resultValue == null && round.cutoff.attemptResult != null) {
+            round.cutoff.resultValue = round.cutoff.attemptResult;
+        }
+        if (round.cutoff == null && round.timeLimit != null) {
+            if (round.timeLimit.centiseconds === 60000 &&
+                round.timeLimit.cumulativeRoundIds.length === 0
+            ) {
+                round.timeLimit = null;
+            }
+        }
+    }
+
+    function getSourceRoundIds(round, fallbackRound) {
+        const participationRuleset = round.participationRuleset;
+        const participationSource = participationRuleset && participationRuleset.participationSource;
+        if (participationSource) {
+            if (participationSource.type === "round" && participationSource.roundId) {
+                return [participationSource.roundId];
+            }
+            if (participationSource.type === "linkedRounds" && Array.isArray(participationSource.roundIds)) {
+                return participationSource.roundIds;
+            }
+        }
+        return fallbackRound ? [fallbackRound.id] : [];
+    }
+
+    function buildBestSourceRankings(roundIds, roundIdToRound) {
+        const rankings = {};
+        roundIds.forEach(roundId => {
+            const sourceRound = roundIdToRound[roundId];
+            if (!sourceRound || !Array.isArray(sourceRound.results)) {
+                return;
+            }
+            sourceRound.results.forEach(result => {
+                if (result.ranking == null) {
+                    return;
+                }
+                if (rankings[result.personId] == null || result.ranking < rankings[result.personId]) {
+                    rankings[result.personId] = result.ranking;
+                }
+            });
+        });
+        return rankings;
+    }
+
+    function addCompetitorScoresheet(generator, wcifData, playerName, playerId, roundId, group) {
+        const roundInfo = getRoundInfo(roundId);
+        const cutoffInfo = wcifData.roundIdToCutoff[roundId] || {};
+        const format = wcifData.roundToFormat[roundId];
+        const attempts = getFormatAttempts(format);
+        if (roundInfo.event === '333fm') {
+            return;
+        }
+        if (roundInfo.event === '333mbf') {
+            generator.addMBFScoresheet(playerName, playerId, roundInfo.round, attempts);
+        } else {
+            generator.addScoresheet(
+                playerName,
+                playerId,
+                eventNames[roundInfo.event],
+                roundInfo.round,
+                attempts,
+                group,
+                cutoffInfo.cutoff,
+                cutoffInfo.timeLimit
+            );
+        }
+    }
+
     function generateScoresheetForRounds(wcifData) {
         wcifData.nonFirstRounds.forEach(round => {
             const roundId = round.id;
@@ -132,21 +248,15 @@ $(function(){
                 const playersPerGroup = Math.ceil(numPlayers / numGroups);
                 var generator = new scoresheetGenerator(wcifData.name);
                 var fileName = wcifData.name + " " + roundId;
-                const actArray = roundId.split("-");
-                const event = actArray[0];
-                const roundNum = actArray[1].slice(1);
-                const format = wcifData.roundToFormat[roundId];
-                const attempts = formats[format].attempts;
                 round.results.forEach((res, idx) => {
-                    person = wcifData.idToPerson[res.personId];
+                    const person = wcifData.idToPerson[res.personId];
                     let playerName = person.name;
                     const wcaId = person.wcaId;
                     if (wcaId == null) { // if wcaId is empty, add newcomer
                         playerName = "(new) " + playerName;
                     }
                     const group = Math.floor(idx / playersPerGroup) + 1;
-                    generator.addScoresheet(playerName, res.personId, eventNames[event],
-                                            roundNum, attempts, group);
+                    addCompetitorScoresheet(generator, wcifData, playerName, res.personId, roundId, group);
                 });
                 console.log(generator);
                 generator.generatePDF(fileName);
@@ -347,34 +457,33 @@ $(function(){
         wcifData.nonFirstRoundIds = [];
         wcifData.roundToFormat = {};
         wcifData.roundIdToCutoff = {};
+        wcifData.roundIdToRound = {};
+        wcifData.eventIdToFirstRoundIds = {};
 
         wcifData.name = wcifData.shortName;
         for (const event of wcifData.events) {
             if (event.id === "333fm") {
                 continue;
             }
+            const firstRoundEquivalentIds = getFirstRoundEquivalentIds(event);
+            wcifData.eventIdToFirstRoundIds[event.id] = firstRoundEquivalentIds;
             var previousRound = null;
             event.rounds.forEach((round, idx) => {
-                if (idx === 0) {
+                wcifData.roundIdToRound[round.id] = round;
+                if (firstRoundEquivalentIds.includes(round.id)) {
                     wcifData.firstRounds.push(round.id);
                 } else {
                     wcifData.nonFirstRounds.push(round);
                     wcifData.nonFirstRoundIds.push(round.id);
                 }
                 wcifData.roundToFormat[round.id] = round.format;
-                if (round.cutoff == null) {
-                    if (round.timeLimit != null) {
-                        if (round.timeLimit.centiseconds === 60000 && // if time limit is 10mins
-                            round.timeLimit.cumulativeRoundIds.length === 0 // and not cumulative
-                        ) {
-                            round.timeLimit = null;
-                        }
-                    }
-                }
+                normalizeCutoffAndTimeLimit(round);
                 wcifData.roundIdToCutoff[round.id] = {'cutoff': round.cutoff, 'timeLimit': round.timeLimit};
                 if (previousRound != null) {
+                    const sourceRoundIds = getSourceRoundIds(round, previousRound);
+                    const sourceRankings = buildBestSourceRankings(sourceRoundIds, wcifData.roundIdToRound);
                     round.results.forEach((r, idx) => {
-                        r['preRanking'] = previousRound.results.filter(pr => pr.personId === r.personId)[0].ranking;
+                        r['preRanking'] = sourceRankings[r.personId] || 0;
                     });
                     sortByPreRanking(round.results);
                 }
@@ -458,17 +567,10 @@ $(function(){
                             if (event === '333fm') {
                                 continue;
                             }
-                            const roundId = event + "-r1";
-                            const cutoff = wcifData.roundIdToCutoff[roundId].cutoff;
-                            const timeLimit = wcifData.roundIdToCutoff[roundId].timeLimit;
-                            const format = wcifData.roundToFormat[roundId];
-                            const attempts = formats[format].attempts;
-                            if (event === '333mbf') {
-                                generator.addMBFScoresheet(playerName, playerId, 1, attempts);
-                            } else {
-                                generator.addScoresheet(playerName, playerId, eventNames[event],
-                                                1, attempts, "", cutoff, timeLimit);
-                            }
+                            const roundIds = wcifData.eventIdToFirstRoundIds[event] || [event + "-r1"];
+                            roundIds.forEach(roundId => {
+                                addCompetitorScoresheet(generator, wcifData, playerName, playerId, roundId, "");
+                            });
                         }
                     }
                 }
@@ -476,27 +578,11 @@ $(function(){
                     if (assignment.assignmentCode === "competitor") {
                         const activity = wcifData.activityIdToGroup[assignment.activityId];
                         if (activity) {
-                            const activityCode = activity.activityCode;
-                            const actArray = activityCode.split("-");
-                            const event = actArray[0];
-                            const round = actArray[1].slice(1);
-                            const group = actArray[2].slice(1);
-                            const roundId = event + "-r" + round;
-                            const cutoff = wcifData.roundIdToCutoff[roundId].cutoff;
-                            const timeLimit = wcifData.roundIdToCutoff[roundId].timeLimit;
-                            const format = wcifData.roundToFormat[roundId];
-                            const attempts = formats[format].attempts;
-                            if (event === '333fm') {
-                                continue;
-                            }
-                            if (event === '333mbf') {
-                                generator.addMBFScoresheet(playerName, playerId, round, attempts);
-                            } else {
-                                generator.addScoresheet(playerName, playerId, eventNames[event],
-                                                round, attempts, group, cutoff, timeLimit);
-                            }
+                            const activityInfo = getActivityInfo(activity.activityCode);
+                            const roundId = activityInfo.event + "-r" + activityInfo.round;
+                            addCompetitorScoresheet(generator, wcifData, playerName, playerId, roundId, activityInfo.group);
                         }
-                        }
+                    }
                 }
             }
         }
@@ -511,12 +597,16 @@ $(function(){
     
     function generateByEventGroup(wcifData, generator) {
         generator.five = _.sortBy(generator.five, 'group');
+        generator.five = _.sortBy(generator.five, 'round');
         generator.five = _.sortBy(generator.five, 'Event');
         generator.three = _.sortBy(generator.three, 'group');
+        generator.three = _.sortBy(generator.three, 'round');
         generator.three = _.sortBy(generator.three, 'Event');
         generator.two = _.sortBy(generator.two, 'group');
+        generator.two = _.sortBy(generator.two, 'round');
         generator.two = _.sortBy(generator.two, 'Event');
         generator.one = _.sortBy(generator.one, 'group');
+        generator.one = _.sortBy(generator.one, 'round');
         generator.one = _.sortBy(generator.one, 'Event');
     }
 

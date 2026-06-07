@@ -22,5 +22,9 @@ var formats = {
     m: {
         name: "Mean of 3",
         attempts: 3
+    },
+    h: {
+        name: "Head-to-Head",
+        attempts: 5
     }
 };

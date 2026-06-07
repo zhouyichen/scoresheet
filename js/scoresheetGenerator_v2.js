@@ -53,6 +53,7 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             ID: index,
             Event: event,
             Round: 'Round ' + round,
+            round: parseInt(round),
             Group: 'Group ' + group,
             group: parseInt(group),
             cutoff: cufoff,
@@ -86,7 +87,8 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             Name: player,
             ID: index,
             Event: "3×3 Multi-BF",
-            Round: 'Round ' + round
+            Round: 'Round ' + round,
+            round: parseInt(round)
         };
         scoresheet.attempts = attempts;
         (this.mbf).push(scoresheet);
@@ -276,7 +278,11 @@ var scoresheetGenerator = function (compName="WCA Competition") {
                 if (showCutoff && (a == settings.cutoffAttempts)) {
                     var cutOfftext = "";
                     if (scoresheet.cutoff != null) {
-                        cutOfftext += 'Cutoff < ' + centisecondsToTimeStr(scoresheet.cutoff.attemptResult);
+                        var cutoffResult = scoresheet.cutoff.resultValue;
+                        if (cutoffResult == null) {
+                            cutoffResult = scoresheet.cutoff.attemptResult;
+                        }
+                        cutOfftext += 'Cutoff < ' + centisecondsToTimeStr(cutoffResult);
                     }
                     if (scoresheet.timeLimit != null) {
                         var limitText = '    Time Limit < ';
