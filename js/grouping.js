@@ -32,7 +32,7 @@ var groupingPrinter = function (compName="WCA Competition") {
     var colWidth = (A4PtSize.width - initX * 2) / numCols;
     var pageStartY = 50;
     var groupIndent = 70;
-    var roleSpacing = nameFontSize + 4;
+    var roleSpacing = nameFontSize - 2;
 
     var groupColumnsPerPage = 8;
     var tableRowsPerPage = 31;
@@ -62,6 +62,29 @@ var groupingPrinter = function (compName="WCA Competition") {
             return '';
         }
         return date.getFullYear() + '-' + pad2(date.getMonth() + 1) + '-' + pad2(date.getDate());
+    };
+
+    var shouldSkipGroupingActivity = function (activity) {
+        if (!activity || !Array.isArray(activity.extensions)) {
+            return false;
+        }
+        for (var idx = 0; idx < activity.extensions.length; idx++) {
+            var extension = activity.extensions[idx];
+            var data = extension && extension.data;
+            if (data && Object.prototype.hasOwnProperty.call(data, 'simul_dual_base_round')) {
+                return data.simul_dual_base_round != null;
+            }
+        }
+        return false;
+    };
+
+    var getPrintableGroups = function (round) {
+        var groups = (Array.isArray(round.childActivities) && round.childActivities.length > 0)
+            ? round.childActivities
+            : [round];
+        return groups.filter(function (group) {
+            return group && !shouldSkipGroupingActivity(group);
+        });
     };
 
 
@@ -135,6 +158,10 @@ var groupingPrinter = function (compName="WCA Competition") {
             if (!currentRound) {
                 continue;
             }
+            var roundGroups = getPrintableGroups(currentRound);
+            if (roundGroups.length === 0) {
+                continue;
+            }
             var roundDateKey = getDateKey(currentRound.startTime);
             if (previousDateKey !== null && roundDateKey !== previousDateKey) {
                 doc.addPage();
@@ -142,15 +169,8 @@ var groupingPrinter = function (compName="WCA Competition") {
             }
             previousDateKey = roundDateKey;
 
-            var roundGroups = (Array.isArray(currentRound.childActivities) && currentRound.childActivities.length > 0)
-                ? currentRound.childActivities
-                : [currentRound];
-
             for (var groupIdx = 0; groupIdx < roundGroups.length; groupIdx++) {
                 var group = roundGroups[groupIdx];
-                if (!group) {
-                    continue;
-                }
                 var groupName = group.name || currentRound.name || '';
                 var groupTime = this.formatGroupTime(group);
                 var actCode = group.activityCode;
@@ -277,6 +297,10 @@ var groupingPrinter = function (compName="WCA Competition") {
                 if (!currentRound) {
                     continue;
                 }
+                var roundGroups = getPrintableGroups(currentRound);
+                if (roundGroups.length === 0) {
+                    continue;
+                }
                 var currentDateKey = getDateKey(currentRound.startTime);
                 if (totalGroups > 0 && previousDateKey !== null && currentDateKey !== previousDateKey) {
                     // Fill remaining columns with empty cells before changing page
@@ -289,15 +313,8 @@ var groupingPrinter = function (compName="WCA Competition") {
                 }
                 previousDateKey = currentDateKey;
 
-                var roundGroups = (Array.isArray(currentRound.childActivities) && currentRound.childActivities.length > 0)
-                    ? currentRound.childActivities
-                    : [currentRound];
-
                 for (var groupIdx = 0; groupIdx < roundGroups.length; groupIdx++) {
                     var group = roundGroups[groupIdx];
-                    if (!group) {
-                        continue;
-                    }
 
                     if (pageColumnIndex === groupColumnsPerPage) {
                         doc.addPage();
@@ -426,6 +443,9 @@ var groupingPrinter = function (compName="WCA Competition") {
             var actDateKey = getDateKey(act.startTime);
             var children = act.childActivities || [];
             if (children.length === 0) {
+                if (shouldSkipGroupingActivity(act)) {
+                    continue;
+                }
                 var activityCode = act.activityCode;
                 var scrList = scramblerLookup[activityCode] || [];
                 var sortedScramblers = scrList.slice().sort(function (a, b) {
@@ -446,7 +466,7 @@ var groupingPrinter = function (compName="WCA Competition") {
             } else {
                 for (var childIdx = 0; childIdx < children.length; childIdx++) {
                     var group = children[childIdx];
-                    if (!group) {
+                    if (!group || shouldSkipGroupingActivity(group)) {
                         continue;
                     }
                     var groupCode = group.activityCode;
@@ -636,7 +656,8 @@ var groupingPrinter = function (compName="WCA Competition") {
                 var lastJudgeIds = null;
                 var lastScramblerIds = null;
                 for (const act of room.allCompetingActs) {
-                    for (var group of act.childActivities) {
+                    var groups = getPrintableGroups(act);
+                    for (var group of groups) {
                         const currentActCode = group.activityCode;
                         const currentCompetitors = wcifData.actCodeToCompetitors[currentActCode];
                         const currentJudges = wcifData.actCodeToJudges[currentActCode];
