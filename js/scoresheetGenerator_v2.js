@@ -28,6 +28,9 @@ var scoresheetGenerator = function (compName="WCA Competition") {
     var ctx;
     var scale = 11;
 
+    var specialScoresheetMarker = '★';
+    // var specialScoresheetMarker = '☆';
+
     this.five = [];
     this.three = [];
     this.two = [];
@@ -44,10 +47,10 @@ var scoresheetGenerator = function (compName="WCA Competition") {
      * @param {integer} group 
      * @param {integer} cufoff
      * @param {integer} timeLimit
-     * @param {integer} cumLimit
+     * @param {boolean} specialMarker
      */
     this.addScoresheet = function (player, index, event, round, attempts, group="",
-                                   cufoff=null, timeLimit=null) {
+                                   cufoff=null, timeLimit=null, specialMarker=false) {
         var scoresheet = {
             Name: player,
             ID: index,
@@ -58,6 +61,7 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             group: parseInt(group),
             cutoff: cufoff,
             timeLimit: timeLimit,
+            SpecialMarker: specialMarker,
         };
         switch (attempts) {
             case 5:
@@ -268,7 +272,7 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             y += headerLineHeight;
             // // console.log(sheetXStart, y);
             doc.setFontSize(headerFontSize);
-            doc.autoTable(headerRow2, [scoresheet], infoOptions(doc, sheetXStart+infoTableXOffset, y,  headerSpacing));
+            doc.autoTable(headerRow2, [scoresheet], infoOptions(doc, sheetXStart+infoTableXOffset, y, headerSpacing, scoresheet.SpecialMarker));
             y += headerLineHeight * 2 + settings.vertPadding * 2;
 
             // render attempts
@@ -443,7 +447,7 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         { title: 'Player', key: 'ps', width: 54 }
     ];
 
-    function infoOptions(doc, xStart, yStart, spacing) {
+    function infoOptions(doc, xStart, yStart, spacing, specialMarker=false) {
         padding = 2;
         var leftMargin = xStart;
         var rightMargin = A4PtSize.width - (leftMargin + 270);
@@ -483,6 +487,9 @@ var scoresheetGenerator = function (compName="WCA Competition") {
                 var special_char_start = value.indexOf('(');
                 if (value.length > 30 && special_char_start > 0) {
                     value = value.slice(0, special_char_start-1);
+                }
+                if (key == 'Name' && specialMarker) {
+                    value = specialScoresheetMarker + ' ' + value;
                 }
                 if (key == 'Name' && containsSpecial(value)) {
                     var imgData;

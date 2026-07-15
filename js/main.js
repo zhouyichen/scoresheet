@@ -148,6 +148,42 @@ $(function(){
         return formats[format].attempts;
     }
 
+    function needSpecialMarking(competitor, round, wcifData, alwaysCheckForFinal=false) {
+        const roundInfo = round ? getRoundInfo(round.id) : {};
+        const eventId = roundInfo.event;
+        const personalBests = competitor && competitor.personalBests ? competitor.personalBests : [];
+
+        if (['666', '777', 'minx'].includes(eventId)) {
+            return false;
+        }
+        var rankType = 'average'
+        var maxNR = 3;
+        if (eventId.includes('bf')) {
+            rankType = 'single';
+        }
+        if (eventId === '555') {
+            maxNR = 1;
+        }
+        const eventPB = personalBests.find(personalBest =>
+            personalBest.eventId === eventId && personalBest.type === rankType
+        );
+
+        if ((eventPB &&
+                (eventPB.worldRanking <= 50 ||
+                 eventPB.continentalRanking <= 5 ||
+                 eventPB.nationalRanking <= maxNR))
+        ) {
+            return true;
+        }
+        if (alwaysCheckForFinal && round) {
+            const event = wcifData.events.find(event => event.id === eventId);
+            if (event && event.rounds[event.rounds.length - 1].id === round.id) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function isRegistrationSourceRound(round, idx) {
         const participationRuleset = round.participationRuleset;
         const participationSource = participationRuleset && participationRuleset.participationSource;
@@ -226,6 +262,11 @@ $(function(){
         if (roundInfo.event === '333mbf') {
             generator.addMBFScoresheet(playerName, playerId, roundInfo.round, attempts);
         } else {
+            const specialMarker = needSpecialMarking(
+                wcifData.idToPerson[playerId],
+                wcifData.roundIdToRound[roundId],
+                wcifData
+            );
             generator.addScoresheet(
                 playerName,
                 playerId,
@@ -234,7 +275,8 @@ $(function(){
                 attempts,
                 group,
                 cutoffInfo.cutoff,
-                cutoffInfo.timeLimit
+                cutoffInfo.timeLimit,
+                specialMarker
             );
         }
     }
