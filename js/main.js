@@ -170,8 +170,8 @@ $(function(){
 
         if ((eventPB &&
                 (eventPB.worldRanking <= 50 ||
-                 eventPB.continentalRanking <= 5 ||
-                 eventPB.nationalRanking <= maxNR))
+                 (eventPB.continentalRanking <= 5 && eventPB.continentalRanking > 0)||
+                 (eventPB.nationalRanking <= maxNR && eventPB.nationalRanking > 0)))
         ) {
             return true;
         }
