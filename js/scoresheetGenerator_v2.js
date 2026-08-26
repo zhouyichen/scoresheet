@@ -48,20 +48,22 @@ var scoresheetGenerator = function (compName="WCA Competition") {
      * @param {integer} cufoff
      * @param {integer} timeLimit
      * @param {boolean} specialMarker
+     * @param {string} roundId canonical WCIF-style round ID used for optional sorting
      */
     this.addScoresheet = function (player, index, event, round, attempts, group="",
-                                   cufoff=null, timeLimit=null, specialMarker=false) {
+                                   cufoff=null, timeLimit=null, specialMarker=false, roundId="") {
         var scoresheet = {
             Name: player,
             ID: index,
             Event: event,
-            Round: 'Round ' + round,
+            Round: round === '' ? '' : 'Round ' + round,
             round: parseInt(round),
-            Group: 'Group ' + group,
+            Group: group === '' ? '' : 'Group ' + group,
             group: parseInt(group),
             cutoff: cufoff,
             timeLimit: timeLimit,
             SpecialMarker: specialMarker,
+            roundId: roundId,
         };
         switch (attempts) {
             case 5:
@@ -85,14 +87,16 @@ var scoresheetGenerator = function (compName="WCA Competition") {
      * @param {integer} index  
      * @param {integer} round
      * @param {integer} attempts number of attempts of the event
+     * @param {string} roundId canonical WCIF-style round ID used for optional sorting
      */
-    this.addMBFScoresheet = function (player, index, round, attempts) {
+    this.addMBFScoresheet = function (player, index, round, attempts, roundId="") {
         var scoresheet = {
             Name: player,
             ID: index,
             Event: "3×3 Multi-BF",
             Round: 'Round ' + round,
-            round: parseInt(round)
+            round: parseInt(round),
+            roundId: roundId
         };
         scoresheet.attempts = attempts;
         (this.mbf).push(scoresheet);
@@ -101,9 +105,10 @@ var scoresheetGenerator = function (compName="WCA Competition") {
     /**
      * Generate the PDF for downloading
      * @param  {String} fileName the name of the file
+     * @param  {Boolean} sortByRoundAndGroup render round sections in round/group order
      * @return {PDF}
      */
-    this.generatePDF = function (fileName) {
+    this.generatePDF = function (fileName, sortByRoundAndGroup=false) {
         setUpCanvas();
         
         var doc = new jsPDF('p', 'pt');
@@ -122,6 +127,12 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             else {
                 break;
             }
+        }
+
+        if (sortByRoundAndGroup) {
+            generateSortedByRoundAndGroup(this, doc);
+            doc.save(fileName + '.pdf');
+            return;
         }
 
         var firstPage = true;
@@ -160,6 +171,84 @@ var scoresheetGenerator = function (compName="WCA Competition") {
             }
         }
         doc.save(fileName + '.pdf');
+    }
+
+    function generateSortedByRoundAndGroup(generator, doc) {
+        var roundSections = {};
+        var emptySections = [];
+
+        function addStandardSheets(sheets, settings) {
+            var emptySheets = [];
+            sheets.forEach(function (scoresheet) {
+                if (!scoresheet.roundId) {
+                    emptySheets.push(scoresheet);
+                    return;
+                }
+                if (!roundSections[scoresheet.roundId]) {
+                    roundSections[scoresheet.roundId] = {
+                        roundId: scoresheet.roundId,
+                        sheets: [],
+                        settings: settings,
+                        isMBF: false
+                    };
+                }
+                roundSections[scoresheet.roundId].sheets.push(scoresheet);
+            });
+            if (emptySheets.length > 0) {
+                emptySections.push({sheets: emptySheets, settings: settings, isMBF: false});
+            }
+        }
+
+        addStandardSheets(generator.five, fiveAttemptsSettings);
+        addStandardSheets(generator.three, threeAttemptsSettings);
+        addStandardSheets(generator.two, twoAttemptsSettings);
+        addStandardSheets(generator.one, oneAttemptSettings);
+
+        generator.mbf.forEach(function (scoresheet) {
+            var roundId = scoresheet.roundId;
+            if (!roundSections[roundId]) {
+                roundSections[roundId] = {
+                    roundId: roundId,
+                    sheets: [],
+                    settings: null,
+                    isMBF: true
+                };
+            }
+            roundSections[roundId].sheets.push(scoresheet);
+        });
+
+        var sections = Object.keys(roundSections)
+            .sort(function (a, b) { return a.localeCompare(b, undefined, {numeric: true}); })
+            .map(function (roundId) { return roundSections[roundId]; });
+
+        sections.forEach(function (section) {
+            section.sheets.sort(function (a, b) {
+                var aGroup = Number.isFinite(a.group) ? a.group : Number.MAX_SAFE_INTEGER;
+                var bGroup = Number.isFinite(b.group) ? b.group : Number.MAX_SAFE_INTEGER;
+                return aGroup - bGroup;
+            });
+        });
+
+        var firstPage = true;
+        sections.concat(emptySections).forEach(function (section) {
+            if (!firstPage) {
+                doc.addPage();
+            } else {
+                firstPage = false;
+            }
+            if (section.isMBF) {
+                var attempts = section.sheets[0].attempts;
+                if (attempts === 3) {
+                    generateMBFByAttempts(section.sheets, doc, threeMBFAttemptsSettings);
+                } else if (attempts === 2) {
+                    generateMBFByAttempts(section.sheets, doc, twoMBFAttemptsSettings);
+                } else {
+                    generateMBFByAttempts(section.sheets, doc, oneMBFAttemptSettings);
+                }
+            } else {
+                generateByAttempts(section.sheets, doc, section.settings, generator.compName);
+            }
+        });
     }
 
     function setUpCanvas() {

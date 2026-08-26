@@ -18,6 +18,10 @@ $(function(){
         generateFirstRounds(wcifData);
     });
 
+    $('#configNonFirstRounds').mouseup(function () {
+        renderNonFirstRoundsConfig(wcifData);
+    });
+
     $('#generateEmpty').mouseup(function () {
         generateEmptyScoresheet();
     });
@@ -251,16 +255,20 @@ $(function(){
         return rankings;
     }
 
-    function addCompetitorScoresheet(generator, wcifData, playerName, playerId, roundId, group) {
+    function addCompetitorScoresheet(generator, wcifData, playerName, playerId, roundId, group,
+                                     preserveWcifTimeLimit=false) {
         const roundInfo = getRoundInfo(roundId);
-        const cutoffInfo = wcifData.roundIdToCutoff[roundId] || {};
+        const cutoffMap = preserveWcifTimeLimit
+            ? wcifData.roundIdToPreCompetitionCutoff
+            : wcifData.roundIdToCutoff;
+        const cutoffInfo = cutoffMap[roundId] || {};
         const format = wcifData.roundToFormat[roundId];
         const attempts = getFormatAttempts(format);
         if (roundInfo.event === '333fm') {
             return;
         }
         if (roundInfo.event === '333mbf') {
-            generator.addMBFScoresheet(playerName, playerId, roundInfo.round, attempts);
+            generator.addMBFScoresheet(playerName, playerId, roundInfo.round, attempts, roundId);
         } else {
             const specialMarker = needSpecialMarking(
                 wcifData.idToPerson[playerId],
@@ -276,7 +284,8 @@ $(function(){
                 group,
                 cutoffInfo.cutoff,
                 cutoffInfo.timeLimit,
-                specialMarker
+                specialMarker,
+                roundId
             );
         }
     }
@@ -499,8 +508,11 @@ $(function(){
         wcifData.nonFirstRoundIds = [];
         wcifData.roundToFormat = {};
         wcifData.roundIdToCutoff = {};
+        wcifData.roundIdToPreCompetitionCutoff = {};
         wcifData.roundIdToRound = {};
         wcifData.eventIdToFirstRoundIds = {};
+        wcifData.nonFirstRoundConfigValues = {};
+        wcifData.nonFirstBlankPagesCustomized = false;
 
         wcifData.name = wcifData.shortName;
         for (const event of wcifData.events) {
@@ -519,6 +531,13 @@ $(function(){
                     wcifData.nonFirstRoundIds.push(round.id);
                 }
                 wcifData.roundToFormat[round.id] = round.format;
+                // Keep the WCIF time limit for pre-printed later-round sheets. The
+                // normal generation flow intentionally suppresses the default
+                // ten-minute limit below.
+                wcifData.roundIdToPreCompetitionCutoff[round.id] = {
+                    'cutoff': round.cutoff,
+                    'timeLimit': round.timeLimit
+                };
                 normalizeCutoffAndTimeLimit(round);
                 wcifData.roundIdToCutoff[round.id] = {'cutoff': round.cutoff, 'timeLimit': round.timeLimit};
                 if (previousRound != null) {
@@ -588,6 +607,405 @@ $(function(){
         }
         console.log(generator);
         generator.generatePDF(fileName);
+    }
+
+    function getExpectedRoundCompetitors(round, event, wcifData) {
+        if (round.manuallyAdded) {
+            return round.expectedCompetitors;
+        }
+
+        const participationRuleset = round.participationRuleset || {};
+        const participationSource = participationRuleset.participationSource || {};
+        const resultCondition = participationSource.resultCondition || {};
+
+        if (participationSource.type === 'registrations') {
+            return wcifData.persons.filter(person =>
+                person.registration != null &&
+                person.registration.status === 'accepted' &&
+                person.registration.isCompeting &&
+                person.registration.eventIds.includes(event.id)
+            ).length;
+        }
+
+        if (resultCondition.type === 'ranking' && Number.isFinite(resultCondition.value)) {
+            return resultCondition.value;
+        }
+
+        if (resultCondition.type === 'percent' && Number.isFinite(resultCondition.value)) {
+            const registeredCompetitors = wcifData.persons.filter(person =>
+                person.registration != null &&
+                person.registration.status === 'accepted' &&
+                person.registration.isCompeting &&
+                person.registration.eventIds.includes(event.id)
+            ).length;
+            return Math.ceil(registeredCompetitors * resultCondition.value / 100);
+        }
+
+        if (Array.isArray(round.results) && round.results.length > 0) {
+            return round.results.length;
+        }
+
+        return 0;
+    }
+
+    function splitCompetitorsEvenly(numberOfCompetitors, numberOfGroups) {
+        const groupCount = Math.max(1, numberOfGroups || 1);
+        const baseSize = Math.floor(numberOfCompetitors / groupCount);
+        const remainder = numberOfCompetitors % groupCount;
+        const groupSizes = [];
+        for (var idx = 0; idx < groupCount; idx++) {
+            groupSizes.push(baseSize + (idx < remainder ? 1 : 0));
+        }
+        return groupSizes;
+    }
+
+    function roundUpToFullScoresheetPage(numberOfScoresheets) {
+        return Math.ceil(numberOfScoresheets / 4) * 4;
+    }
+
+    function parseGroupSizes(value) {
+        const trimmedValue = (value || '').trim();
+        if (!trimmedValue) {
+            return null;
+        }
+        const tokens = trimmedValue.split(/[\s,]+/);
+        if (tokens.some(token => !/^\d+$/.test(token))) {
+            return null;
+        }
+        return tokens.map(token => parseInt(token, 10));
+    }
+
+    function setRoundConfigError(input, message) {
+        const cell = input.closest('td');
+        cell.toggleClass('has-error', Boolean(message));
+        cell.find('.round-config-error').text(message || '');
+    }
+
+    function validateRoundConfigInput(input) {
+        const groupSizes = parseGroupSizes(input.val());
+        const expectedCompetitors = parseInt(input.attr('data-expected-competitors'), 10) || 0;
+        const expectedGroups = parseInt(input.attr('data-group-count'), 10) || 1;
+        const manuallyAdded = input.attr('data-manually-added') === 'true';
+        var error = '';
+
+        if (groupSizes == null) {
+            error = 'Enter whole numbers separated by spaces.';
+        } else if (!manuallyAdded && groupSizes.length !== expectedGroups) {
+            error = 'Enter exactly ' + expectedGroups + ' group value' + (expectedGroups === 1 ? '.' : 's.');
+        } else {
+            const configuredTotal = groupSizes.reduce((sum, size) => sum + size, 0);
+            if (configuredTotal < expectedCompetitors) {
+                error = 'Total must be at least ' + expectedCompetitors + '.';
+            }
+        }
+
+        if (manuallyAdded && groupSizes != null) {
+            input.closest('td').find('.round-config-summary').text(
+                expectedCompetitors + ' competitors, ' + groupSizes.length + ' group' +
+                (groupSizes.length === 1 ? '' : 's')
+            );
+        }
+        setRoundConfigError(input, error);
+        return error ? null : groupSizes;
+    }
+
+    function updateBlankScoresheetCount() {
+        const pages = parseInt($('#nonFirstBlankPages').val(), 10);
+        const validPages = Number.isFinite(pages) && pages >= 0 ? pages : 0;
+        $('#nonFirstBlankCopies').text(validPages * 4);
+    }
+
+    function escapeHTMLAttribute(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function captureNonFirstRoundConfig(wcifData) {
+        $('.non-first-round-groups').each(function () {
+            wcifData.nonFirstRoundConfigValues[$(this).attr('data-round-id')] = $(this).val();
+        });
+        if ($('#nonFirstBlankPages').length > 0) {
+            wcifData.nonFirstBlankPages = $('#nonFirstBlankPages').val();
+        }
+    }
+
+    function getConfiguredCompetitorCount(round, event, wcifData) {
+        const savedValue = wcifData.nonFirstRoundConfigValues[round.id];
+        const savedGroupSizes = parseGroupSizes(savedValue);
+        if (savedGroupSizes != null) {
+            return savedGroupSizes.reduce((sum, size) => sum + size, 0);
+        }
+        return getExpectedRoundCompetitors(round, event, wcifData);
+    }
+
+    function addManualRound(wcifData, eventId) {
+        captureNonFirstRoundConfig(wcifData);
+        const event = wcifData.events.find(candidate => candidate.id === eventId);
+        if (!event || event.rounds.length >= 4) {
+            return;
+        }
+
+        const previousRound = event.rounds.reduce((latest, round) =>
+            parseInt(getRoundInfo(round.id).round, 10) > parseInt(getRoundInfo(latest.id).round, 10)
+                ? round
+                : latest
+        );
+        const previousRoundNumber = parseInt(getRoundInfo(previousRound.id).round, 10);
+        if (previousRoundNumber >= 4) {
+            return;
+        }
+
+        const roundNumber = previousRoundNumber + 1;
+        const roundId = event.id + '-r' + roundNumber;
+        const expectedCompetitors = Math.ceil(
+            getConfiguredCompetitorCount(previousRound, event, wcifData) / 2
+        );
+        const round = {
+            id: roundId,
+            format: previousRound.format,
+            timeLimit: previousRound.timeLimit,
+            cutoff: previousRound.cutoff,
+            scrambleSetCount: 1,
+            results: [],
+            linkedRounds: null,
+            participationRuleset: null,
+            manuallyAdded: true,
+            expectedCompetitors: expectedCompetitors
+        };
+
+        event.rounds.push(round);
+        wcifData.nonFirstRounds.push(round);
+        wcifData.nonFirstRoundIds.push(roundId);
+        wcifData.roundToFormat[roundId] = round.format;
+        wcifData.roundIdToRound[roundId] = round;
+        wcifData.roundIdToCutoff[roundId] = {
+            cutoff: round.cutoff,
+            timeLimit: round.timeLimit
+        };
+        const previousPreCompetitionCutoff =
+            wcifData.roundIdToPreCompetitionCutoff[previousRound.id] || {};
+        wcifData.roundIdToPreCompetitionCutoff[roundId] = {
+            cutoff: previousPreCompetitionCutoff.cutoff,
+            timeLimit: previousPreCompetitionCutoff.timeLimit
+        };
+        wcifData.nonFirstRoundConfigValues[roundId] = String(expectedCompetitors);
+        renderNonFirstRoundsConfig(wcifData);
+    }
+
+    function removeManualRound(wcifData, roundId) {
+        captureNonFirstRoundConfig(wcifData);
+        const round = wcifData.roundIdToRound[roundId];
+        if (!round || !round.manuallyAdded) {
+            return;
+        }
+        const eventId = getRoundInfo(roundId).event;
+        const event = wcifData.events.find(candidate => candidate.id === eventId);
+        event.rounds = event.rounds.filter(candidate => candidate.id !== roundId);
+        wcifData.nonFirstRounds = wcifData.nonFirstRounds.filter(candidate => candidate.id !== roundId);
+        wcifData.nonFirstRoundIds = wcifData.nonFirstRoundIds.filter(id => id !== roundId);
+        delete wcifData.roundToFormat[roundId];
+        delete wcifData.roundIdToRound[roundId];
+        delete wcifData.roundIdToCutoff[roundId];
+        delete wcifData.roundIdToPreCompetitionCutoff[roundId];
+        delete wcifData.nonFirstRoundConfigValues[roundId];
+        renderNonFirstRoundsConfig(wcifData);
+    }
+
+    function renderNonFirstRoundsConfig(wcifData) {
+        if (!wcifData) {
+            return;
+        }
+
+        const configurableEvents = wcifData.events.filter(event => event.id !== '333fm');
+        var maxRoundNumber = 2;
+        configurableEvents.forEach(event => {
+            event.rounds.forEach(round => {
+                maxRoundNumber = Math.max(maxRoundNumber, parseInt(getRoundInfo(round.id).round, 10));
+            });
+        });
+
+        var totalScoresheets = 0;
+        var tableHTML = '<div class="table-responsive"><table class="table table-bordered table-condensed">';
+        tableHTML += '<thead><tr><th>Event ID</th>';
+        for (var roundNumber = 2; roundNumber <= maxRoundNumber; roundNumber++) {
+            tableHTML += '<th>Round ' + roundNumber + ' grouping</th>';
+        }
+        tableHTML += '</tr></thead><tbody>';
+
+        configurableEvents.forEach(event => {
+            const roundsByNumber = {};
+            event.rounds.forEach(round => {
+                if (wcifData.nonFirstRoundIds.includes(round.id)) {
+                    roundsByNumber[parseInt(getRoundInfo(round.id).round, 10)] = round;
+                }
+            });
+            const latestRoundNumber = event.rounds.reduce((latest, round) =>
+                Math.max(latest, parseInt(getRoundInfo(round.id).round, 10)), 0
+            );
+            tableHTML += '<tr><th scope="row"><div>' + event.id + '</div>';
+            if (event.rounds.length < 4 && latestRoundNumber < 4) {
+                tableHTML += '<button type="button" class="btn btn-default btn-xs add-non-first-round" ' +
+                    'data-event-id="' + event.id + '" style="margin-top: 5px;">Add round</button>';
+            }
+            tableHTML += '</th>';
+            for (var currentRound = 2; currentRound <= maxRoundNumber; currentRound++) {
+                const round = roundsByNumber[currentRound];
+                if (!round) {
+                    tableHTML += '<td class="text-muted">&mdash;</td>';
+                    continue;
+                }
+                const numberOfCompetitors = getExpectedRoundCompetitors(round, event, wcifData);
+                const numberOfGroups = Math.max(1, parseInt(round.scrambleSetCount, 10) || 1);
+                const defaultGroupSizes = splitCompetitorsEvenly(numberOfCompetitors, numberOfGroups);
+                const savedValue = wcifData.nonFirstRoundConfigValues[round.id];
+                const inputValue = savedValue == null ? defaultGroupSizes.join(' ') : savedValue;
+                const savedGroupSizes = parseGroupSizes(inputValue);
+                const displayedGroupCount = round.manuallyAdded && savedGroupSizes != null
+                    ? savedGroupSizes.length
+                    : numberOfGroups;
+                const configuredTotal = savedGroupSizes == null
+                    ? defaultGroupSizes.reduce((sum, size) => sum + size, 0)
+                    : savedGroupSizes.reduce((sum, size) => sum + size, 0);
+                totalScoresheets += configuredTotal;
+                tableHTML += '<td>' +
+                    '<input type="text" class="form-control non-first-round-groups" ' +
+                    'data-round-id="' + round.id + '" ' +
+                    'data-expected-competitors="' + numberOfCompetitors + '" ' +
+                    'data-group-count="' + numberOfGroups + '" ' +
+                    'data-manually-added="' + Boolean(round.manuallyAdded) + '" ' +
+                    'value="' + escapeHTMLAttribute(inputValue) + '">' +
+                    '<small class="text-muted round-config-summary">' +
+                    numberOfCompetitors + ' competitors, ' + displayedGroupCount + ' group' +
+                    (displayedGroupCount === 1 ? '' : 's') + '</small>' +
+                    (round.manuallyAdded
+                        ? '<div><button type="button" class="btn btn-link btn-xs remove-non-first-round" ' +
+                          'data-round-id="' + round.id + '">Remove round</button></div>'
+                        : '') +
+                    '<span class="help-block round-config-error" style="margin: 2px 0 0;"></span>' +
+                    '</td>';
+            }
+            tableHTML += '</tr>';
+        });
+
+        const defaultBlankPages = Math.ceil(totalScoresheets / 32);
+        const blankPagesValue = wcifData.nonFirstBlankPagesCustomized
+            ? wcifData.nonFirstBlankPages
+            : defaultBlankPages;
+        tableHTML += '<tr><th scope="row">Empty scoresheets</th><td colspan="' + Math.max(1, maxRoundNumber - 1) + '">' +
+            '<div class="form-inline"><label for="nonFirstBlankPages">Pages&nbsp;</label>' +
+            '<input type="number" min="0" step="1" class="form-control" id="nonFirstBlankPages" ' +
+            'value="' + escapeHTMLAttribute(blankPagesValue) + '" style="width: 90px;">' +
+            '<span style="margin-left: 10px;"><span id="nonFirstBlankCopies">' +
+            ((parseInt(blankPagesValue, 10) || 0) * 4) +
+            '</span> empty scoresheets (4 per page)</span></div>' +
+            '<span class="help-block" id="nonFirstBlankPagesError" style="margin: 2px 0 0;"></span>' +
+            '</td></tr>';
+        tableHTML += '</tbody></table></div>';
+        tableHTML += '<div class="alert alert-danger" id="nonFirstRoundsError" hidden></div>';
+        tableHTML += '<button type="button" class="btn btn-primary" id="generateNonFirstRounds">' +
+            'Generate non-1st Rounds Scoresheets</button>';
+
+        console.log('number_of_all_scoresheets_in_all_rounds:', totalScoresheets);
+        $('#nonFirstRoundsConfig').html(tableHTML).show();
+
+        $('.non-first-round-groups').on('input', function () {
+            wcifData.nonFirstRoundConfigValues[$(this).attr('data-round-id')] = $(this).val();
+            validateRoundConfigInput($(this));
+            $('#nonFirstRoundsError').hide();
+        });
+        $('#nonFirstBlankPages').on('input', function () {
+            wcifData.nonFirstBlankPagesCustomized = true;
+            wcifData.nonFirstBlankPages = $(this).val();
+            updateBlankScoresheetCount();
+            $('#nonFirstBlankPagesError').text('');
+        });
+        $('#generateNonFirstRounds').mouseup(function () {
+            generateNonFirstRounds(wcifData);
+        });
+        $('.add-non-first-round').mouseup(function () {
+            addManualRound(wcifData, $(this).attr('data-event-id'));
+        });
+        $('.remove-non-first-round').mouseup(function () {
+            removeManualRound(wcifData, $(this).attr('data-round-id'));
+        });
+    }
+
+    function generateNonFirstRounds(wcifData) {
+        var isValid = true;
+        var configuredRounds = [];
+        $('.non-first-round-groups').each(function () {
+            const input = $(this);
+            const groupSizes = validateRoundConfigInput(input);
+            if (groupSizes == null) {
+                isValid = false;
+            } else {
+                configuredRounds.push({
+                    roundId: input.attr('data-round-id'),
+                    groupSizes: groupSizes
+                });
+            }
+        });
+
+        const blankPagesText = ($('#nonFirstBlankPages').val() || '').trim();
+        const blankPages = parseInt(blankPagesText, 10);
+        if (!/^\d+$/.test(blankPagesText) || !Number.isFinite(blankPages)) {
+            $('#nonFirstBlankPagesError').text('Enter a non-negative whole number of pages.');
+            $('#nonFirstBlankPages').closest('td').addClass('has-error');
+            isValid = false;
+        } else {
+            $('#nonFirstBlankPagesError').text('');
+            $('#nonFirstBlankPages').closest('td').removeClass('has-error');
+        }
+
+        if (!isValid) {
+            $('#nonFirstRoundsError').text('Please fix the highlighted configuration values before generating.').show();
+            const firstError = $('#nonFirstRoundsConfig .has-error input, #nonFirstBlankPagesError:not(:empty)').first();
+            if (firstError.length > 0) {
+                firstError.focus();
+            }
+            return;
+        }
+
+        var generator = new scoresheetGenerator(wcifData.name);
+        var totalScoresheets = 0;
+        configuredRounds.forEach(config => {
+            const showGroupNumber = config.groupSizes.length > 1;
+            config.groupSizes.forEach((groupSize, groupIdx) => {
+                for (var copy = 0; copy < groupSize; copy++) {
+                    addCompetitorScoresheet(
+                        generator,
+                        wcifData,
+                        '',
+                        '',
+                        config.roundId,
+                        showGroupNumber ? groupIdx + 1 : '',
+                        true
+                    );
+                    totalScoresheets++;
+                }
+            });
+
+            const configuredTotal = config.groupSizes.reduce((sum, size) => sum + size, 0);
+            const paddedTotal = roundUpToFullScoresheetPage(configuredTotal);
+            for (var paddingCopy = configuredTotal; paddingCopy < paddedTotal; paddingCopy++) {
+                addCompetitorScoresheet(
+                    generator, wcifData, '', '', config.roundId, '', true
+                );
+                totalScoresheets++;
+            }
+        });
+        console.log('number_of_all_scoresheets_in_all_rounds:', totalScoresheets);
+
+        const numberOfBlankScoresheets = blankPages * 4;
+        for (var blankCopy = 0; blankCopy < numberOfBlankScoresheets; blankCopy++) {
+            generator.addScoresheet('', '', '', '', 5, '');
+        }
+
+        console.log(generator);
+        generator.generatePDF(wcifData.name + ' Non-1st Rounds', true);
     }
 
 
