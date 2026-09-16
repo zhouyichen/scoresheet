@@ -1,3 +1,3 @@
 # scoresheet
 
-javascript Scoresheet generator for WCA competitions
+Javascript Scorecard generator for WCA competitions
