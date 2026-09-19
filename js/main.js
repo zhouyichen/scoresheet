@@ -1020,11 +1020,22 @@ $(function(){
                 if (wcaId == null) { // if wcaId is empty, add newcomer
                     playerName = "(new) " + playerName;
                 }
+
+                // Multi-Blind first-round scorecards from registrations data directly
+                if (person.registration.isCompeting &&
+                        person.registration.eventIds.includes('333mbf')) {
+                    const multiBlindRoundIds = wcifData.eventIdToFirstRoundIds['333mbf'] || [];
+                    multiBlindRoundIds.forEach(roundId => {
+                        addCompetitorScoresheet(
+                            generator, wcifData, playerName, playerId, roundId, ""
+                        );
+                    });
+                }
                 
                 if (person.assignments.length === 0) {
                     if (person.registration.isCompeting) {
                         for (const event of person.registration.eventIds) {
-                            if (event === '333fm') {
+                            if (event === '333fm' || event === '333mbf') {
                                 continue;
                             }
                             const roundIds = wcifData.eventIdToFirstRoundIds[event] || [event + "-r1"];
@@ -1039,6 +1050,9 @@ $(function(){
                         const activity = wcifData.activityIdToGroup[assignment.activityId];
                         if (activity) {
                             const activityInfo = getActivityInfo(activity.activityCode);
+                            if (activityInfo.event === '333mbf') {
+                                continue;
+                            }
                             const roundId = activityInfo.event + "-r" + activityInfo.round;
                             addCompetitorScoresheet(generator, wcifData, playerName, playerId, roundId, activityInfo.group);
                         }
