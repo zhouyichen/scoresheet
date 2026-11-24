@@ -403,7 +403,7 @@ var scoresheetGenerator = function (compName="WCA Competition") {
         doc.setTextColor(0); doc.setFontStyle('bold'); doc.setFontSize(20);
         // console.log('' + a, x+settings.numberXStart, y+lineHeight)
         doc.text('' + a, x+settings.numberXStart, y+lineHeight*1.25);
-        doc.autoTable(attempRow1, [{}], attemptsOptions(doc, x+attemptTableXOffset, y, headerSpacing));
+        doc.autoTable(attempRow1, [{}], attemptsOptions(doc, x+attemptTableXOffset, y, headerSpacing, provisional));
         y += lineHeight;
         doc.autoTable(attempRow2, [{}], attemptsOptions(doc, x+attemptTableXOffset, y, headerSpacing, provisional));
     }
