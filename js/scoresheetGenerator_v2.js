@@ -646,7 +646,10 @@ var scoresheetGenerator = function (compName="WCA Competition") {
                 x = headerSpacing(x, key, doc);
                 doc.setFontStyle('bold');
                 y += settings.lineHeight / 2 + doc.internal.getLineHeight() / 2 ;
-                doc.setTextColor(223);
+                doc.setTextColor(239);
+                if (provisional) {
+                    doc.setTextColor(207);
+                }
                 var text = value;
                 if (key === "extra" && provisional) {
                     text = "Attempt No.";
